@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 
-import { AiService } from '../services/ai-service.js';
+import type { AiService } from '../services/ai-service.js';
 
 export function createAiRouter(aiService: AiService) {
   const router = Router();
@@ -11,12 +11,12 @@ export function createAiRouter(aiService: AiService) {
       const body = z
         .object({
           inputText: z.string().trim().min(1),
-          fallbackOccurredAt: z.string().datetime().optional()
+          fallbackOccurredAt: z.string().datetime().optional(),
         })
         .parse(request.body);
 
       response.json({
-        draft: await aiService.parseTransaction(body.inputText, body.fallbackOccurredAt)
+        draft: await aiService.parseTransaction(body.inputText, body.fallbackOccurredAt),
       });
     } catch (error) {
       next(error);

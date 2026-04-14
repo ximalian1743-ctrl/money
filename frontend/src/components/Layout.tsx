@@ -5,7 +5,7 @@ const navItems = [
   { to: '/manual', label: '记一笔' },
   { to: '/ai', label: 'AI 记账' },
   { to: '/ledger', label: '流水' },
-  { to: '/settings', label: '设置' }
+  { to: '/settings', label: '设置' },
 ];
 
 export function Layout() {
@@ -28,7 +28,11 @@ export function Layout() {
           <Link
             key={item.to}
             to={item.to}
-            className={location.pathname === item.to ? 'bottom-nav__item bottom-nav__item--active' : 'bottom-nav__item'}
+            className={
+              location.pathname === item.to
+                ? 'bottom-nav__item bottom-nav__item--active'
+                : 'bottom-nav__item'
+            }
           >
             {item.label}
           </Link>

@@ -10,7 +10,7 @@ const fallbackAccounts: AccountBalance[] = [
   { id: 4, name: '中国银行储蓄卡', kind: 'asset', currency: 'CNY', balance: 0 },
   { id: 5, name: '微信钱包', kind: 'asset', currency: 'CNY', balance: 0 },
   { id: 6, name: '交通卡西瓜卡', kind: 'asset', currency: 'JPY', balance: 0 },
-  { id: 7, name: 'PayPay 信用卡', kind: 'liability', currency: 'JPY', balance: 0 }
+  { id: 7, name: 'PayPay 信用卡', kind: 'liability', currency: 'JPY', balance: 0 },
 ];
 
 const fallbackSummary: SummaryData = {
@@ -22,7 +22,7 @@ const fallbackSummary: SummaryData = {
   totalAssetsCnyBase: 0,
   totalLiabilitiesJpy: 0,
   totalLiabilitiesCnyBase: 0,
-  actualBalanceCnyBase: 0
+  actualBalanceCnyBase: 0,
 };
 
 const fallbackSettings: PublicSettings = {
@@ -32,7 +32,7 @@ const fallbackSettings: PublicSettings = {
   aiProtocol: 'chat_completions',
   aiModel: '',
   hasApiKey: false,
-  aiApiKeyMasked: ''
+  aiApiKeyMasked: '',
 };
 
 export function useAppData() {
@@ -52,7 +52,7 @@ export function useAppData() {
         getAccounts(),
         getSummary(),
         getSettings(),
-        getTransactions().catch(() => [])
+        getTransactions().catch(() => []),
       ]);
       setAccounts(nextAccounts);
       setSummary(nextSummary);
@@ -77,6 +77,6 @@ export function useAppData() {
     loading,
     error,
     reload,
-    setSettings
+    setSettings,
   };
 }

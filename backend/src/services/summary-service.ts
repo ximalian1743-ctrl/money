@@ -28,7 +28,7 @@ export class SummaryService {
         name: account.name,
         kind: account.kind,
         currency: account.currency,
-        balance: account.initialBalance
+        balance: account.initialBalance,
       });
     }
 
@@ -47,7 +47,7 @@ export class SummaryService {
 function adjustBalance(
   balances: Map<number, AccountBalance>,
   accountId: number | null,
-  delta: number
+  delta: number,
 ): void {
   if (accountId === null) {
     return;
@@ -63,7 +63,7 @@ function adjustBalance(
 
 function applyTransaction(
   balances: Map<number, AccountBalance>,
-  transaction: TransactionRecord
+  transaction: TransactionRecord,
 ): void {
   switch (transaction.type) {
     case 'expense':

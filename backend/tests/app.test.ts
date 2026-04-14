@@ -36,12 +36,9 @@ test('POST /api/settings/models loads provider models from derived base url', as
     fetchImpl: async (input) => {
       calls.push(String(input));
       return Response.json({
-        data: [
-          { id: 'gpt-4.1-mini' },
-          { id: 'gpt-4.1' }
-        ]
+        data: [{ id: 'gpt-4.1-mini' }, { id: 'gpt-4.1' }],
       });
-    }
+    },
   });
   const server = app.listen(0);
   const address = server.address();
@@ -53,12 +50,12 @@ test('POST /api/settings/models loads provider models from derived base url', as
   const response = await fetch(`http://127.0.0.1:${address.port}/api/settings/models`, {
     method: 'POST',
     headers: {
-      'content-type': 'application/json'
+      'content-type': 'application/json',
     },
     body: JSON.stringify({
       aiEndpointUrl: 'https://example.com',
-      aiApiKey: 'test-key'
-    })
+      aiApiKey: 'test-key',
+    }),
   });
   const payload = await response.json();
 
@@ -87,12 +84,12 @@ test('POST /api/ai/parse-transaction returns a normalized draft', async () => {
           {
             message: {
               content:
-                '{"type":"expense","title":"午饭","amount":38,"currency":"CNY","accountName":"现金纸币","targetAccountName":"","category":"餐饮","occurredAt":"2026-04-14T12:00:00.000Z","note":"","warnings":[]}'
-            }
-          }
-        ]
+                '{"type":"expense","title":"午饭","amount":38,"currency":"CNY","accountName":"现金纸币","targetAccountName":"","category":"餐饮","occurredAt":"2026-04-14T12:00:00.000Z","note":"","warnings":[]}',
+            },
+          },
+        ],
       });
-    }
+    },
   });
   const server = app.listen(0);
   const address = server.address();
@@ -104,7 +101,7 @@ test('POST /api/ai/parse-transaction returns a normalized draft', async () => {
   await fetch(`http://127.0.0.1:${address.port}/api/settings`, {
     method: 'PUT',
     headers: {
-      'content-type': 'application/json'
+      'content-type': 'application/json',
     },
     body: JSON.stringify({
       aiEndpointUrl: 'https://example.com',
@@ -112,18 +109,18 @@ test('POST /api/ai/parse-transaction returns a normalized draft', async () => {
       aiProtocol: 'chat_completions',
       aiModel: 'gpt-4.1-mini',
       cnyToJpyRate: 20,
-      jpyToCnyRate: 0.05
-    })
+      jpyToCnyRate: 0.05,
+    }),
   });
 
   const response = await fetch(`http://127.0.0.1:${address.port}/api/ai/parse-transaction`, {
     method: 'POST',
     headers: {
-      'content-type': 'application/json'
+      'content-type': 'application/json',
     },
     body: JSON.stringify({
-      inputText: '午饭38元，用现金纸币'
-    })
+      inputText: '午饭38元，用现金纸币',
+    }),
   });
   const payload = await response.json();
 
@@ -151,11 +148,11 @@ test('POST /api/ai/parse-transaction uses provided fallback time when model omit
           {
             message: {
               content:
-                '{"type":"expense","title":"咖啡","amount":20,"currency":"CNY","accountName":"现金纸币","targetAccountName":"","category":"餐饮","note":"","warnings":[]}'
-            }
-          }
-        ]
-      })
+                '{"type":"expense","title":"咖啡","amount":20,"currency":"CNY","accountName":"现金纸币","targetAccountName":"","category":"餐饮","note":"","warnings":[]}',
+            },
+          },
+        ],
+      }),
   });
   const server = app.listen(0);
   const address = server.address();
@@ -167,7 +164,7 @@ test('POST /api/ai/parse-transaction uses provided fallback time when model omit
   await fetch(`http://127.0.0.1:${address.port}/api/settings`, {
     method: 'PUT',
     headers: {
-      'content-type': 'application/json'
+      'content-type': 'application/json',
     },
     body: JSON.stringify({
       aiEndpointUrl: 'https://example.com',
@@ -175,20 +172,20 @@ test('POST /api/ai/parse-transaction uses provided fallback time when model omit
       aiProtocol: 'chat_completions',
       aiModel: 'gpt-4.1-mini',
       cnyToJpyRate: 20,
-      jpyToCnyRate: 0.05
-    })
+      jpyToCnyRate: 0.05,
+    }),
   });
 
   const fallbackOccurredAt = '2026-04-14T09:30:00.000Z';
   const response = await fetch(`http://127.0.0.1:${address.port}/api/ai/parse-transaction`, {
     method: 'POST',
     headers: {
-      'content-type': 'application/json'
+      'content-type': 'application/json',
     },
     body: JSON.stringify({
       inputText: '咖啡20元，用现金纸币',
-      fallbackOccurredAt
-    })
+      fallbackOccurredAt,
+    }),
   });
   const payload = await response.json();
 

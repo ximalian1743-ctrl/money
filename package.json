@@ -1,6 +1,7 @@
 {
   "name": "money-record",
   "private": true,
+  "type": "module",
   "workspaces": [
     "backend",
     "frontend"
@@ -8,9 +9,23 @@
   "scripts": {
     "dev": "concurrently \"npm --workspace backend run dev\" \"npm --workspace frontend run dev\"",
     "build": "npm --workspace backend run build && npm --workspace frontend run build",
-    "test": "npm --workspace backend run test && npm --workspace frontend run test"
+    "test": "npm --workspace backend run test && npm --workspace frontend run test",
+    "typecheck": "npm --workspace backend run typecheck && npm --workspace frontend run typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "@eslint/js": "^9.18.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.18",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2",
+    "typescript-eslint": "^8.21.0"
   }
 }

@@ -1,7 +1,7 @@
 import {
   convertToDualCurrencyValues,
   formatCurrencyWithCode,
-  type ExchangeRates
+  type ExchangeRates,
 } from '../lib/format';
 import type { Currency } from '../types/api';
 
@@ -18,11 +18,7 @@ interface NativeDualCurrencyAmountProps {
   align?: 'start' | 'end';
 }
 
-export function DualCurrencyAmount({
-  cny,
-  jpy,
-  align = 'start'
-}: DualCurrencyAmountProps) {
+export function DualCurrencyAmount({ cny, jpy, align = 'start' }: DualCurrencyAmountProps) {
   return (
     <div className={`dual-amount dual-amount--${align}`}>
       <span>{formatCurrencyWithCode(cny, 'CNY')}</span>
@@ -35,7 +31,7 @@ export function NativeDualCurrencyAmount({
   amount,
   currency,
   rates,
-  align = 'start'
+  align = 'start',
 }: NativeDualCurrencyAmountProps) {
   const values = convertToDualCurrencyValues(amount, currency, rates);
   return <DualCurrencyAmount cny={values.cny} jpy={values.jpy} align={align} />;

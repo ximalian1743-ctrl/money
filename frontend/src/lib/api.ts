@@ -5,7 +5,7 @@ import type {
   PublicSettings,
   SettingsInput,
   SummaryData,
-  TransactionRecord
+  TransactionRecord,
 } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001/api';
@@ -14,9 +14,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       'content-type': 'application/json',
-      ...(init?.headers ?? {})
+      ...(init?.headers ?? {}),
     },
-    ...init
+    ...init,
   });
 
   if (response.status === 204) {
@@ -47,7 +47,7 @@ export async function getSettings(): Promise<PublicSettings> {
 export async function saveSettings(input: SettingsInput): Promise<PublicSettings> {
   return request<PublicSettings>('/settings', {
     method: 'PUT',
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
 }
 
@@ -58,7 +58,7 @@ export async function loadModels(input: {
 }): Promise<string[]> {
   const payload = await request<{ models: string[] }>('/settings/models', {
     method: 'POST',
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
   return payload.models;
 }
@@ -66,7 +66,7 @@ export async function loadModels(input: {
 export async function createTransaction(input: CreateTransactionInput) {
   return request('/transactions', {
     method: 'POST',
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
 }
 
@@ -77,7 +77,7 @@ export async function getTransactions(): Promise<TransactionRecord[]> {
 
 export async function deleteTransaction(id: number): Promise<void> {
   await request(`/transactions/${id}`, {
-    method: 'DELETE'
+    method: 'DELETE',
   });
 }
 
@@ -87,7 +87,7 @@ export async function parseTransaction(input: {
 }): Promise<ParsedDraft> {
   const payload = await request<{ draft: ParsedDraft }>('/ai/parse-transaction', {
     method: 'POST',
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
   return payload.draft;
 }

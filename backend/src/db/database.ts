@@ -21,9 +21,7 @@ export function createMemoryDatabase(): DatabaseSync {
 }
 
 export function createFileDatabase(filePath?: string): DatabaseSync {
-  const resolvedPath =
-    filePath ??
-    path.join(process.cwd(), 'data', 'money-record.sqlite');
+  const resolvedPath = filePath ?? path.join(process.cwd(), 'data', 'money-record.sqlite');
   fs.mkdirSync(path.dirname(resolvedPath), { recursive: true });
   return initializeDatabase(new DatabaseSync(resolvedPath));
 }

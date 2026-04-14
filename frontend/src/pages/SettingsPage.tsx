@@ -12,7 +12,7 @@ export function SettingsPage() {
     aiEndpointUrl: settings.aiEndpointUrl,
     aiApiKey: '',
     aiProtocol: settings.aiProtocol,
-    aiModel: settings.aiModel
+    aiModel: settings.aiModel,
   });
   const [models, setModels] = useState<string[]>(settings.aiModel ? [settings.aiModel] : []);
   const [message, setMessage] = useState('');
@@ -24,7 +24,7 @@ export function SettingsPage() {
       aiEndpointUrl: settings.aiEndpointUrl,
       aiApiKey: '',
       aiProtocol: settings.aiProtocol,
-      aiModel: settings.aiModel
+      aiModel: settings.aiModel,
     });
     setModels(settings.aiModel ? [settings.aiModel] : []);
   }, [settings]);
@@ -45,7 +45,7 @@ export function SettingsPage() {
       const nextModels = await loadModels({
         aiEndpointUrl: form.aiEndpointUrl,
         aiApiKey: form.aiApiKey,
-        aiProtocol: form.aiProtocol
+        aiProtocol: form.aiProtocol,
       });
       setModels(nextModels);
       if (!form.aiModel && nextModels[0]) {
@@ -107,9 +107,7 @@ export function SettingsPage() {
           type="password"
           placeholder={settings.hasApiKey ? settings.aiApiKeyMasked : '输入新的 API Key'}
           value={form.aiApiKey}
-          onChange={(event) =>
-            setForm((current) => ({ ...current, aiApiKey: event.target.value }))
-          }
+          onChange={(event) => setForm((current) => ({ ...current, aiApiKey: event.target.value }))}
         />
       </label>
 
@@ -121,7 +119,7 @@ export function SettingsPage() {
           onChange={(event) =>
             setForm((current) => ({
               ...current,
-              aiProtocol: event.target.value as SettingsInput['aiProtocol']
+              aiProtocol: event.target.value as SettingsInput['aiProtocol'],
             }))
           }
         >

@@ -14,7 +14,7 @@ export class AiService {
 
   constructor(
     private readonly db: DatabaseSync,
-    private readonly fetchImpl: FetchLike = fetch
+    private readonly fetchImpl: FetchLike = fetch,
   ) {
     this.accountsRepository = new AccountsRepository(db);
     this.settingsRepository = new SettingsRepository(db);
@@ -22,7 +22,7 @@ export class AiService {
 
   async parseTransaction(
     inputText: string,
-    fallbackOccurredAt?: string
+    fallbackOccurredAt?: string,
   ): Promise<ParsedTransactionDraft> {
     const settings = this.settingsRepository.get();
     if (!settings.aiEndpointUrl || !settings.aiApiKey || !settings.aiModel) {
@@ -40,42 +40,48 @@ export class AiService {
                 content: [
                   {
                     type: 'input_text',
-                    text: buildSystemPrompt(accounts.map((account) => account.name), fallbackOccurredAt)
-                  }
-                ]
+                    text: buildSystemPrompt(
+                      accounts.map((account) => account.name),
+                      fallbackOccurredAt,
+                    ),
+                  },
+                ],
               },
               {
                 role: 'user',
                 content: [
                   {
                     type: 'input_text',
-                    text: inputText
-                  }
-                ]
-              }
-            ]
+                    text: inputText,
+                  },
+                ],
+              },
+            ],
           }
         : {
             model: settings.aiModel,
             messages: [
               {
                 role: 'system',
-                content: buildSystemPrompt(accounts.map((account) => account.name), fallbackOccurredAt)
+                content: buildSystemPrompt(
+                  accounts.map((account) => account.name),
+                  fallbackOccurredAt,
+                ),
               },
               {
                 role: 'user',
-                content: inputText
-              }
-            ]
+                content: inputText,
+              },
+            ],
           };
 
     const response = await this.fetchImpl(settings.aiEndpointUrl, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        Authorization: `Bearer ${settings.aiApiKey}`
+        Authorization: `Bearer ${settings.aiApiKey}`,
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
     });
 
     const rawPayload = (await response.json()) as Record<string, unknown>;
@@ -102,21 +108,23 @@ export class AiService {
     parsedJson: string,
     rawResponse: string,
     success: boolean,
-    errorMessage: string
+    errorMessage: string,
   ): void {
     this.db
-      .prepare(`
+      .prepare(
+        `
         insert into ai_parse_logs (
           input_text, parsed_json, raw_response, success, error_message, created_at
         ) values (?, ?, ?, ?, ?, ?)
-      `)
+      `,
+      )
       .run(
         inputText,
         parsedJson,
         rawResponse,
         success ? 1 : 0,
         errorMessage,
-        new Date().toISOString()
+        new Date().toISOString(),
       );
   }
 }
@@ -129,14 +137,14 @@ function buildSystemPrompt(accountNames: string[], fallbackOccurredAt?: string):
     'type 仅允许: expense,income,transfer,credit_spending,credit_repayment。',
     'currency 仅允许: CNY,JPY。',
     `可用账户: ${accountNames.join('、')}。`,
-    '如果无法确定账户，请填空字符串并在 warnings 中说明。'
+    '如果无法确定账户，请填空字符串并在 warnings 中说明。',
   ];
 
   if (fallbackOccurredAt) {
     lines.push(
       `基准时间: ${fallbackOccurredAt}。`,
       '如果用户输入没有明确指定时间，请直接使用这个基准时间填入 occurredAt。',
-      '如果用户输入明确指定了时间，请优先使用用户指定的时间。'
+      '如果用户输入明确指定了时间，请优先使用用户指定的时间。',
     );
   } else {
     lines.push('如果没有日期，请使用当前时间并在 warnings 中说明。');

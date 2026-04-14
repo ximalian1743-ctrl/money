@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import type { NewTransactionInput } from '../domain/types.js';
-import { TransactionService } from '../services/transaction-service.js';
+import type { TransactionService } from '../services/transaction-service.js';
 
 const transactionSchema = z.object({
   type: z.enum(['expense', 'income', 'transfer', 'credit_spending', 'credit_repayment']),
@@ -15,7 +15,7 @@ const transactionSchema = z.object({
   category: z.string().trim().optional(),
   occurredAt: z.string().datetime(),
   origin: z.enum(['manual', 'ai']).optional(),
-  aiInputText: z.string().optional()
+  aiInputText: z.string().optional(),
 });
 
 export function createTransactionsRouter(transactionService: TransactionService) {

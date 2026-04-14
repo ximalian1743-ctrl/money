@@ -1,10 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 
 import { resolveTransaction } from '../domain/transactions.js';
-import type {
-  CreatedTransactionResult,
-  NewTransactionInput
-} from '../domain/types.js';
+import type { CreatedTransactionResult, NewTransactionInput } from '../domain/types.js';
 import { HttpError } from '../lib/http-error.js';
 import { AccountsRepository } from '../repositories/accounts-repository.js';
 import { TransactionsRepository } from '../repositories/transactions-repository.js';
@@ -24,12 +21,12 @@ export class TransactionService {
     const transaction = this.transactionsRepository.create({
       ...input,
       sourceAccountId: resolved.sourceAccountId,
-      targetAccountId: resolved.targetAccountId
+      targetAccountId: resolved.targetAccountId,
     });
 
     return {
       transaction,
-      accountEffects: resolved.accountEffects
+      accountEffects: resolved.accountEffects,
     };
   }
 

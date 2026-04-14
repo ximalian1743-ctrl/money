@@ -3,13 +3,8 @@ import { z } from 'zod';
 import type { SettingsRecord } from '../domain/types.js';
 import { HttpError } from '../lib/http-error.js';
 import type { FetchLike } from '../lib/provider.js';
-import {
-  buildEndpointUrl,
-  deriveModelsUrl,
-  deriveProtocol,
-  maskApiKey
-} from '../lib/provider.js';
-import { SettingsRepository } from '../repositories/settings-repository.js';
+import { buildEndpointUrl, deriveModelsUrl, deriveProtocol, maskApiKey } from '../lib/provider.js';
+import type { SettingsRepository } from '../repositories/settings-repository.js';
 
 const settingsSchema = z.object({
   cnyToJpyRate: z.number().positive(),
@@ -17,19 +12,19 @@ const settingsSchema = z.object({
   aiEndpointUrl: z.string().trim(),
   aiApiKey: z.string().trim(),
   aiProtocol: z.enum(['chat_completions', 'responses']).optional(),
-  aiModel: z.string().trim()
+  aiModel: z.string().trim(),
 });
 
 const transientSettingsSchema = z.object({
   aiEndpointUrl: z.string().trim(),
   aiApiKey: z.string().trim().optional(),
-  aiProtocol: z.enum(['chat_completions', 'responses']).optional()
+  aiProtocol: z.enum(['chat_completions', 'responses']).optional(),
 });
 
 export class SettingsService {
   constructor(
     private readonly settingsRepository: SettingsRepository,
-    private readonly fetchImpl: FetchLike = fetch
+    private readonly fetchImpl: FetchLike = fetch,
   ) {}
 
   getPublicSettings() {
@@ -41,7 +36,7 @@ export class SettingsService {
       aiProtocol: settings.aiProtocol,
       aiModel: settings.aiModel,
       hasApiKey: Boolean(settings.aiApiKey),
-      aiApiKeyMasked: maskApiKey(settings.aiApiKey)
+      aiApiKeyMasked: maskApiKey(settings.aiApiKey),
     };
   }
 
@@ -53,7 +48,7 @@ export class SettingsService {
       ...parsed,
       aiEndpointUrl: buildEndpointUrl(parsed.aiEndpointUrl, aiProtocol),
       aiProtocol,
-      aiApiKey: parsed.aiApiKey || existing.aiApiKey
+      aiApiKey: parsed.aiApiKey || existing.aiApiKey,
     };
 
     const saved = this.settingsRepository.update(nextSettings);
@@ -64,7 +59,7 @@ export class SettingsService {
       aiProtocol: saved.aiProtocol,
       aiModel: saved.aiModel,
       hasApiKey: Boolean(saved.aiApiKey),
-      aiApiKeyMasked: maskApiKey(saved.aiApiKey)
+      aiApiKeyMasked: maskApiKey(saved.aiApiKey),
     };
   }
 
@@ -73,7 +68,7 @@ export class SettingsService {
     const models = await this.loadModels(resolved);
     return {
       ok: true,
-      modelCount: models.length
+      modelCount: models.length,
     };
   }
 
@@ -83,8 +78,8 @@ export class SettingsService {
     const response = await this.fetchImpl(modelsUrl, {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${resolved.aiApiKey}`
-      }
+        Authorization: `Bearer ${resolved.aiApiKey}`,
+      },
     });
 
     if (!response.ok) {
@@ -117,9 +112,12 @@ export class SettingsService {
 
     return {
       ...existing,
-      aiEndpointUrl: buildEndpointUrl(aiEndpointUrl, parsed.aiProtocol ?? deriveProtocol(aiEndpointUrl)),
+      aiEndpointUrl: buildEndpointUrl(
+        aiEndpointUrl,
+        parsed.aiProtocol ?? deriveProtocol(aiEndpointUrl),
+      ),
       aiApiKey,
-      aiProtocol: parsed.aiProtocol ?? deriveProtocol(aiEndpointUrl)
+      aiProtocol: parsed.aiProtocol ?? deriveProtocol(aiEndpointUrl),
     };
   }
 }

@@ -7,7 +7,7 @@ import type { AccountBalance, ParsedDraft } from '../types/api';
 
 const accounts: AccountBalance[] = [
   { id: 2, name: '现金纸币', kind: 'asset', currency: 'CNY', balance: 0 },
-  { id: 7, name: 'PayPay 信用卡', kind: 'liability', currency: 'JPY', balance: 0 }
+  { id: 7, name: 'PayPay 信用卡', kind: 'liability', currency: 'JPY', balance: 0 },
 ];
 
 const draft: ParsedDraft = {
@@ -20,7 +20,7 @@ const draft: ParsedDraft = {
   category: '餐饮',
   occurredAt: '2026-04-14T12:00:00.000Z',
   note: '',
-  warnings: []
+  warnings: [],
 };
 
 beforeEach(() => {
@@ -37,7 +37,7 @@ test('parses a Chinese short sentence and shows draft preview', async () => {
       accounts={accounts}
       parseTransactionImpl={parseTransactionImpl}
       createTransactionImpl={createTransactionImpl}
-    />
+    />,
   );
 
   await user.type(screen.getByLabelText('记账内容'), '午饭38元，用现金纸币');
@@ -48,7 +48,7 @@ test('parses a Chinese short sentence and shows draft preview', async () => {
   const expectedFallbackOccurredAt = new Date('2026-04-14T09:30').toISOString();
   expect(parseTransactionImpl).toHaveBeenCalledWith({
     inputText: '午饭38元，用现金纸币',
-    fallbackOccurredAt: expectedFallbackOccurredAt
+    fallbackOccurredAt: expectedFallbackOccurredAt,
   });
 
   expect(await screen.findByText('解析结果')).toBeInTheDocument();
@@ -63,8 +63,8 @@ test('parses a Chinese short sentence and shows draft preview', async () => {
       title: '午饭',
       amount: 38,
       sourceAccountName: '现金纸币',
-      origin: 'ai'
-    })
+      origin: 'ai',
+    }),
   );
   expect(await screen.findByText('已保存到流水')).toBeInTheDocument();
 });
@@ -77,7 +77,7 @@ test('restores cached ai input and draft after remount', async () => {
       accounts={accounts}
       parseTransactionImpl={parseTransactionImpl}
       createTransactionImpl={vi.fn().mockResolvedValue(undefined)}
-    />
+    />,
   );
 
   await user.type(screen.getByLabelText('记账内容'), '午饭38元，用现金纸币');
@@ -91,7 +91,7 @@ test('restores cached ai input and draft after remount', async () => {
       accounts={accounts}
       parseTransactionImpl={vi.fn().mockResolvedValue(draft)}
       createTransactionImpl={vi.fn().mockResolvedValue(undefined)}
-    />
+    />,
   );
 
   expect(screen.getByLabelText('记账内容')).toHaveValue('午饭38元，用现金纸币');

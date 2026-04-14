@@ -24,6 +24,6 @@ export function useMutationState() {
     pending,
     message,
     setMessage,
-    run
+    run,
   };
 }

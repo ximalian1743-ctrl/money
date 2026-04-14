@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { SettingsService } from '../services/settings-service.js';
+import type { SettingsService } from '../services/settings-service.js';
 
 export function createSettingsRouter(settingsService: SettingsService) {
   const router = Router();

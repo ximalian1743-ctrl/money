@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { SummaryService } from '../services/summary-service.js';
+import type { SummaryService } from '../services/summary-service.js';
 
 export function createSummaryRouter(summaryService: SummaryService) {
   const router = Router();
