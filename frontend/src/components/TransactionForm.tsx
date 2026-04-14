@@ -44,18 +44,22 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
 
   const assetAccounts = useMemo(
     () => accounts.filter((account) => account.kind === 'asset'),
-    [accounts]
+    [accounts],
   );
   const liabilityAccounts = useMemo(
     () => accounts.filter((account) => account.kind === 'liability'),
-    [accounts]
+    [accounts],
   );
 
   useEffect(() => {
     if (!sourceAccountName && assetAccounts[0]) {
       setSourceAccountName(assetAccounts[0].name);
     }
-    if (!targetAccountName && liabilityAccounts[0] && (type === 'credit_spending' || type === 'credit_repayment')) {
+    if (
+      !targetAccountName &&
+      liabilityAccounts[0] &&
+      (type === 'credit_spending' || type === 'credit_repayment')
+    ) {
       setTargetAccountName(liabilityAccounts[0].name);
     }
   }, [assetAccounts, liabilityAccounts, sourceAccountName, targetAccountName, type]);
@@ -71,7 +75,7 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
       currency,
       category,
       note,
-      occurredAt: toIsoString(occurredAt)
+      occurredAt: toIsoString(occurredAt),
     };
 
     if (type === 'expense') {
@@ -174,31 +178,45 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
 
       {type !== 'expense' ? (
         <label className="field">
-          <span>{type === 'income' ? '入账账户' : type === 'credit_spending' ? '信用账户' : '目标账户'}</span>
+          <span>
+            {type === 'income' ? '入账账户' : type === 'credit_spending' ? '信用账户' : '目标账户'}
+          </span>
           <select
-            aria-label={type === 'income' ? '入账账户' : type === 'credit_spending' ? '信用账户' : '目标账户'}
+            aria-label={
+              type === 'income' ? '入账账户' : type === 'credit_spending' ? '信用账户' : '目标账户'
+            }
             value={targetAccountName}
             onChange={(event) => setTargetAccountName(event.target.value)}
           >
-            {(type === 'credit_spending' || type === 'credit_repayment' ? liabilityAccounts : assetAccounts).map(
-              (account) => (
-                <option key={account.id} value={account.name}>
-                  {account.name}
-                </option>
-              )
-            )}
+            {(type === 'credit_spending' || type === 'credit_repayment'
+              ? liabilityAccounts
+              : assetAccounts
+            ).map((account) => (
+              <option key={account.id} value={account.name}>
+                {account.name}
+              </option>
+            ))}
           </select>
         </label>
       ) : null}
 
       <label className="field">
         <span>分类</span>
-        <input aria-label="分类" value={category} onChange={(event) => setCategory(event.target.value)} />
+        <input
+          aria-label="分类"
+          value={category}
+          onChange={(event) => setCategory(event.target.value)}
+        />
       </label>
 
       <label className="field">
         <span>备注</span>
-        <textarea aria-label="备注" rows={3} value={note} onChange={(event) => setNote(event.target.value)} />
+        <textarea
+          aria-label="备注"
+          rows={3}
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+        />
       </label>
 
       <label className="field">

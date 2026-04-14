@@ -12,11 +12,13 @@ const draftSchema = z.object({
   category: z.string().trim().default(''),
   occurredAt: z.string().trim().default(''),
   note: z.string().trim().default(''),
-  warnings: z.array(z.string()).default([])
+  warnings: z.array(z.string()).default([]),
 });
 
 function normalizeCurrency(value: unknown): 'CNY' | 'JPY' {
-  const text = String(value ?? '').trim().toUpperCase();
+  const text = String(value ?? '')
+    .trim()
+    .toUpperCase();
   if (text === 'JPY' || text === '日元' || text === '円') {
     return 'JPY';
   }
@@ -26,7 +28,7 @@ function normalizeCurrency(value: unknown): 'CNY' | 'JPY' {
 function normalizeAccountName(
   rawValue: unknown,
   accounts: AccountRecord[],
-  warnings: string[]
+  warnings: string[],
 ): string {
   const value = String(rawValue ?? '').trim();
   if (!value) {
@@ -46,9 +48,10 @@ export function normalizeParsedDraft(
   rawDraft: unknown,
   inputText: string,
   accounts: AccountRecord[],
-  fallbackOccurredAt?: string
+  fallbackOccurredAt?: string,
 ): ParsedTransactionDraft {
-  const record = typeof rawDraft === 'object' && rawDraft ? (rawDraft as Record<string, unknown>) : {};
+  const record =
+    typeof rawDraft === 'object' && rawDraft ? (rawDraft as Record<string, unknown>) : {};
   const warnings = Array.isArray(record.warnings)
     ? record.warnings.map((item) => String(item))
     : [];
@@ -59,15 +62,14 @@ export function normalizeParsedDraft(
     fallbackOccurredAt && !Number.isNaN(Date.parse(fallbackOccurredAt))
       ? new Date(fallbackOccurredAt).toISOString()
       : '';
-  const occurredAt = occurredAtRaw && !Number.isNaN(Date.parse(occurredAtRaw))
-    ? new Date(occurredAtRaw).toISOString()
-    : fallbackOccurredAtValue || now;
+  const occurredAt =
+    occurredAtRaw && !Number.isNaN(Date.parse(occurredAtRaw))
+      ? new Date(occurredAtRaw).toISOString()
+      : fallbackOccurredAtValue || now;
 
   if (!occurredAtRaw) {
     warnings.push(
-      fallbackOccurredAtValue
-        ? '未提供时间，已使用传入的基准时间'
-        : '未提供时间，已使用当前时间'
+      fallbackOccurredAtValue ? '未提供时间，已使用传入的基准时间' : '未提供时间，已使用当前时间',
     );
   }
 
@@ -76,16 +78,20 @@ export function normalizeParsedDraft(
     title: String(record.title ?? inputText.slice(0, 24)).trim() || inputText.slice(0, 24),
     amount: record.amount,
     currency: normalizeCurrency(record.currency),
-    accountName: normalizeAccountName(record.accountName ?? record.account_name, accounts, warnings),
+    accountName: normalizeAccountName(
+      record.accountName ?? record.account_name,
+      accounts,
+      warnings,
+    ),
     targetAccountName: normalizeAccountName(
       record.targetAccountName ?? record.target_account_name,
       accounts,
-      warnings
+      warnings,
     ),
     category: record.category ?? '',
     occurredAt,
     note: record.note ?? '',
-    warnings
+    warnings,
   });
 
   return draft;

@@ -11,7 +11,7 @@ interface ManualEntryPageProps {
 
 export function ManualEntryPage({
   accounts,
-  createTransactionImpl = createTransaction
+  createTransactionImpl = createTransaction,
 }: ManualEntryPageProps) {
   const appData = useAppData();
   const { pending, message, setMessage, run } = useMutationState();
@@ -27,7 +27,11 @@ export function ManualEntryPage({
 
   return (
     <section className="stack">
-      <TransactionForm accounts={currentAccounts} submitLabel={pending ? '保存中...' : '保存记录'} onSubmit={handleSubmit} />
+      <TransactionForm
+        accounts={currentAccounts}
+        submitLabel={pending ? '保存中...' : '保存记录'}
+        onSubmit={handleSubmit}
+      />
       {message ? <p className="status">{message}</p> : null}
     </section>
   );

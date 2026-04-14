@@ -37,7 +37,7 @@ function loadPersistedAiEntryState(): PersistedAiEntryState {
   const fallbackState: PersistedAiEntryState = {
     inputText: '',
     fallbackOccurredAtLocal: toDatetimeLocalValue(),
-    draft: null
+    draft: null,
   };
 
   if (typeof window === 'undefined' || typeof window.localStorage?.getItem !== 'function') {
@@ -53,8 +53,9 @@ function loadPersistedAiEntryState(): PersistedAiEntryState {
     const parsed = JSON.parse(raw) as PersistedAiEntryState;
     return {
       inputText: parsed.inputText ?? '',
-      fallbackOccurredAtLocal: parsed.fallbackOccurredAtLocal ?? fallbackState.fallbackOccurredAtLocal,
-      draft: parsed.draft ?? null
+      fallbackOccurredAtLocal:
+        parsed.fallbackOccurredAtLocal ?? fallbackState.fallbackOccurredAtLocal,
+      draft: parsed.draft ?? null,
     };
   } catch {
     return fallbackState;
@@ -81,19 +82,19 @@ function mapDraftToTransaction(draft: ParsedDraft): CreateTransactionInput {
     note: draft.note,
     occurredAt: draft.occurredAt,
     origin: 'ai',
-    aiInputText: draft.title
+    aiInputText: draft.title,
   };
 }
 
 export function AiEntryPage({
   parseTransactionImpl = parseTransaction,
-  createTransactionImpl = createTransaction
+  createTransactionImpl = createTransaction,
 }: AiEntryPageProps) {
   const appData = useAppData();
   const { pending, message, setMessage, run } = useMutationState();
   const [inputText, setInputText] = useState(() => loadPersistedAiEntryState().inputText);
   const [fallbackOccurredAtLocal, setFallbackOccurredAtLocal] = useState(
-    () => loadPersistedAiEntryState().fallbackOccurredAtLocal
+    () => loadPersistedAiEntryState().fallbackOccurredAtLocal,
   );
   const [draft, setDraft] = useState<ParsedDraft | null>(() => loadPersistedAiEntryState().draft);
 
@@ -112,22 +113,22 @@ export function AiEntryPage({
         () =>
           parseTransactionImpl({
             inputText,
-            fallbackOccurredAt
+            fallbackOccurredAt,
           }),
-        '解析完成'
+        '解析完成',
       );
       setDraft(nextDraft);
       persistState({
         inputText,
         fallbackOccurredAtLocal,
-        draft: nextDraft
+        draft: nextDraft,
       });
     } catch {
       setDraft(null);
       persistState({
         inputText,
         fallbackOccurredAtLocal,
-        draft: null
+        draft: null,
       });
     }
   }
@@ -145,7 +146,7 @@ export function AiEntryPage({
     persistState({
       inputText,
       fallbackOccurredAtLocal,
-      draft: null
+      draft: null,
     });
     setMessage('已保存到流水');
   }
@@ -170,7 +171,7 @@ export function AiEntryPage({
               persistState({
                 inputText: nextInputText,
                 fallbackOccurredAtLocal,
-                draft
+                draft,
               });
             }}
           />
@@ -188,7 +189,7 @@ export function AiEntryPage({
               persistState({
                 inputText,
                 fallbackOccurredAtLocal: nextValue,
-                draft
+                draft,
               });
             }}
           />
@@ -201,7 +202,9 @@ export function AiEntryPage({
         {message ? <p className="status">{message}</p> : null}
       </div>
 
-      {draft ? <ParsedDraftCard draft={draft} rates={appData.settings} onConfirm={handleConfirm} /> : null}
+      {draft ? (
+        <ParsedDraftCard draft={draft} rates={appData.settings} onConfirm={handleConfirm} />
+      ) : null}
     </section>
   );
 }

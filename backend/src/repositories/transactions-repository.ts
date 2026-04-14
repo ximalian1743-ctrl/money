@@ -24,7 +24,7 @@ function mapTransactionRow(row: Record<string, unknown>): TransactionRecord {
     createdAt: String(row.created_at),
     deletedAt: row.deleted_at ? String(row.deleted_at) : null,
     origin: row.origin as TransactionRecord['origin'],
-    aiInputText: String(row.ai_input_text)
+    aiInputText: String(row.ai_input_text),
   };
 }
 
@@ -34,12 +34,14 @@ export class TransactionsRepository {
   create(input: PersistedTransactionInput): TransactionRecord {
     const now = new Date().toISOString();
     const result = this.db
-      .prepare(`
+      .prepare(
+        `
         insert into transactions (
           type, title, note, amount, currency, source_account_id, target_account_id,
           category, occurred_at, created_at, origin, ai_input_text
         ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `)
+      `,
+      )
       .run(
         input.type,
         input.title,
@@ -52,11 +54,12 @@ export class TransactionsRepository {
         input.occurredAt,
         now,
         input.origin ?? 'manual',
-        input.aiInputText ?? ''
+        input.aiInputText ?? '',
       );
 
     const row = this.db
-      .prepare(`
+      .prepare(
+        `
         select
           t.id, t.type, t.title, t.note, t.amount, t.currency, t.source_account_id, t.target_account_id,
           t.category, t.occurred_at, t.created_at, t.deleted_at, t.origin, t.ai_input_text,
@@ -66,7 +69,8 @@ export class TransactionsRepository {
         left join accounts source on source.id = t.source_account_id
         left join accounts target on target.id = t.target_account_id
         where t.id = ?
-      `)
+      `,
+      )
       .get(Number(result.lastInsertRowid)) as Record<string, unknown>;
 
     return mapTransactionRow(row);
@@ -91,11 +95,13 @@ export class TransactionsRepository {
 
   softDelete(id: number): boolean {
     const result = this.db
-      .prepare(`
+      .prepare(
+        `
         update transactions
         set deleted_at = ?
         where id = ? and deleted_at is null
-      `)
+      `,
+      )
       .run(new Date().toISOString(), id);
 
     return Number(result.changes) > 0;

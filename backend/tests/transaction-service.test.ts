@@ -14,7 +14,7 @@ test('expense decreases an asset account balance', () => {
     amount: 38,
     currency: 'CNY',
     sourceAccountName: '现金纸币',
-    occurredAt: '2026-04-14T12:00:00.000Z'
+    occurredAt: '2026-04-14T12:00:00.000Z',
   });
 
   assert.equal(result.accountEffects[0]?.delta, -38);
@@ -30,7 +30,7 @@ test('credit repayment decreases liability and funding account together', () => 
     amount: 1200,
     currency: 'JPY',
     targetAccountName: 'PayPay 信用卡',
-    occurredAt: '2026-04-14T12:00:00.000Z'
+    occurredAt: '2026-04-14T12:00:00.000Z',
   });
 
   const result = service.create({
@@ -40,11 +40,11 @@ test('credit repayment decreases liability and funding account together', () => 
     currency: 'JPY',
     sourceAccountName: '交通卡西瓜卡',
     targetAccountName: 'PayPay 信用卡',
-    occurredAt: '2026-04-14T13:00:00.000Z'
+    occurredAt: '2026-04-14T13:00:00.000Z',
   });
 
   assert.deepEqual(
     result.accountEffects.map((item) => item.delta),
-    [-1200, -1200]
+    [-1200, -1200],
   );
 });

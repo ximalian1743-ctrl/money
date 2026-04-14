@@ -14,24 +14,24 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <OverviewPage />
+        element: <OverviewPage />,
       },
       {
         path: 'manual',
-        element: <ManualEntryPage />
+        element: <ManualEntryPage />,
       },
       {
         path: 'ai',
-        element: <AiEntryPage />
+        element: <AiEntryPage />,
       },
       {
         path: 'ledger',
-        element: <LedgerPage />
+        element: <LedgerPage />,
       },
       {
         path: 'settings',
-        element: <SettingsPage />
-      }
-    ]
-  }
+        element: <SettingsPage />,
+      },
+    ],
+  },
 ]);

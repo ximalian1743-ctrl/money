@@ -13,11 +13,11 @@ interface LedgerPageProps {
 
 export function LedgerPage({
   transactions,
-  deleteTransactionImpl = deleteTransaction
+  deleteTransactionImpl = deleteTransaction,
 }: LedgerPageProps) {
   const appData = useAppData();
   const [localTransactions, setLocalTransactions] = useState<TransactionRecord[] | null>(
-    transactions ?? null
+    transactions ?? null,
   );
   const [message, setMessage] = useState('');
 
@@ -50,9 +50,7 @@ export function LedgerPage({
                 <p>
                   {item.type} · {formatDateTime(item.occurredAt)}
                 </p>
-                <p>
-                  {item.sourceAccountName || item.targetAccountName}
-                </p>
+                <p>{item.sourceAccountName || item.targetAccountName}</p>
               </div>
               <div className="ledger-list__meta">
                 <NativeDualCurrencyAmount

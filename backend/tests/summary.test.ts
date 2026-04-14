@@ -10,14 +10,14 @@ const settings: SettingsRecord = {
   aiEndpointUrl: '',
   aiApiKey: '',
   aiProtocol: 'chat_completions',
-  aiModel: ''
+  aiModel: '',
 };
 
 test('computeSummary separates assets and liabilities', () => {
   const balances: AccountBalance[] = [
     { id: 1, name: '现金纸币', kind: 'asset', currency: 'CNY', balance: 100 },
     { id: 2, name: '交通卡西瓜卡', kind: 'asset', currency: 'JPY', balance: 2000 },
-    { id: 3, name: 'PayPay 信用卡', kind: 'liability', currency: 'JPY', balance: 5000 }
+    { id: 3, name: 'PayPay 信用卡', kind: 'liability', currency: 'JPY', balance: 5000 },
   ];
 
   const summary = computeSummary(balances, settings);
@@ -30,7 +30,7 @@ test('computeSummary separates assets and liabilities', () => {
 test('computeSummary returns per-currency asset totals', () => {
   const balances: AccountBalance[] = [
     { id: 1, name: '微信钱包', kind: 'asset', currency: 'CNY', balance: 300 },
-    { id: 2, name: '交通卡西瓜卡', kind: 'asset', currency: 'JPY', balance: 4000 }
+    { id: 2, name: '交通卡西瓜卡', kind: 'asset', currency: 'JPY', balance: 4000 },
   ];
 
   const summary = computeSummary(balances, settings);

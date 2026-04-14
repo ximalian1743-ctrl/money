@@ -47,5 +47,5 @@ export const schemaStatements = [
     success integer not null default 0,
     error_message text not null default '',
     created_at text not null
-  )`
+  )`,
 ];

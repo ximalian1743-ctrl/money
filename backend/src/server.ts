@@ -6,7 +6,7 @@ const config = getConfig();
 
 const app = createApp({
   db: createFileDatabase(config.databasePath),
-  corsOrigin: config.corsOrigin
+  corsOrigin: config.corsOrigin,
 });
 
 app.listen(config.port, () => {

@@ -9,7 +9,7 @@ export function formatCurrency(value: number, currency: Currency): string {
   return new Intl.NumberFormat('zh-CN', {
     style: 'currency',
     currency,
-    maximumFractionDigits: currency === 'JPY' ? 0 : 2
+    maximumFractionDigits: currency === 'JPY' ? 0 : 2,
   }).format(value);
 }
 
@@ -20,18 +20,18 @@ export function formatCurrencyWithCode(value: number, currency: Currency): strin
 export function convertToDualCurrencyValues(
   amount: number,
   currency: Currency,
-  rates: ExchangeRates
+  rates: ExchangeRates,
 ): { cny: number; jpy: number } {
   if (currency === 'JPY') {
     return {
       cny: amount * rates.jpyToCnyRate,
-      jpy: amount
+      jpy: amount,
     };
   }
 
   return {
     cny: amount,
-    jpy: amount * rates.cnyToJpyRate
+    jpy: amount * rates.cnyToJpyRate,
   };
 }
 
@@ -43,6 +43,6 @@ export function formatDateTime(value: string): string {
 
   return new Intl.DateTimeFormat('zh-CN', {
     dateStyle: 'medium',
-    timeStyle: 'short'
+    timeStyle: 'short',
   }).format(date);
 }

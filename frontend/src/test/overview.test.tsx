@@ -7,7 +7,7 @@ test('renders overview balances and account list', async () => {
   render(
     <MemoryRouter>
       <OverviewPage />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 
   expect(await screen.findByText('总存款')).toBeInTheDocument();

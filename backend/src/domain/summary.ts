@@ -2,7 +2,7 @@ import type { AccountBalance, SummaryResult, SettingsRecord } from './types.js';
 
 export function computeSummary(
   balances: AccountBalance[],
-  settings: SettingsRecord
+  settings: SettingsRecord,
 ): SummaryResult {
   const cnyAssetTotal = balances
     .filter((item) => item.kind === 'asset' && item.currency === 'CNY')
@@ -29,6 +29,6 @@ export function computeSummary(
     totalAssetsCnyBase,
     totalLiabilitiesJpy,
     totalLiabilitiesCnyBase,
-    actualBalanceCnyBase: totalAssetsCnyBase - totalLiabilitiesCnyBase
+    actualBalanceCnyBase: totalAssetsCnyBase - totalLiabilitiesCnyBase,
   };
 }

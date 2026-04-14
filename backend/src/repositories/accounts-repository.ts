@@ -13,7 +13,7 @@ function mapAccountRow(row: Record<string, unknown>): AccountRecord {
     isSystem: Boolean(row.is_system),
     isActive: Boolean(row.is_active),
     createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at)
+    updatedAt: String(row.updated_at),
   };
 }
 
@@ -33,11 +33,13 @@ export class AccountsRepository {
 
   getByName(name: string): AccountRecord | null {
     const row = this.db
-      .prepare(`
+      .prepare(
+        `
         select id, name, kind, currency, initial_balance, credit_limit, is_system, is_active, created_at, updated_at
         from accounts
         where name = ?
-      `)
+      `,
+      )
       .get(name) as Record<string, unknown> | undefined;
 
     return row ? mapAccountRow(row) : null;
@@ -46,19 +48,23 @@ export class AccountsRepository {
   updateInitialBalance(id: number, initialBalance: number): AccountRecord | null {
     const now = new Date().toISOString();
     this.db
-      .prepare(`
+      .prepare(
+        `
         update accounts
         set initial_balance = ?, updated_at = ?
         where id = ?
-      `)
+      `,
+      )
       .run(initialBalance, now, id);
 
     const row = this.db
-      .prepare(`
+      .prepare(
+        `
         select id, name, kind, currency, initial_balance, credit_limit, is_system, is_active, created_at, updated_at
         from accounts
         where id = ?
-      `)
+      `,
+      )
       .get(id) as Record<string, unknown> | undefined;
 
     return row ? mapAccountRow(row) : null;

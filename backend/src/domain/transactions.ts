@@ -1,9 +1,5 @@
 import { HttpError } from '../lib/http-error.js';
-import type {
-  AccountEffect,
-  AccountRecord,
-  NewTransactionInput
-} from './types.js';
+import type { AccountEffect, AccountRecord, NewTransactionInput } from './types.js';
 
 interface ResolvedTransaction {
   sourceAccountId: number | null;
@@ -20,7 +16,7 @@ function requirePositiveAmount(input: NewTransactionInput): void {
 function requireAccount(
   accountsByName: Map<string, AccountRecord>,
   name: string | undefined,
-  expectedKinds?: AccountRecord['kind'][]
+  expectedKinds?: AccountRecord['kind'][],
 ): AccountRecord {
   if (!name) {
     throw new HttpError(400, '缺少账户信息');
@@ -40,7 +36,7 @@ function requireAccount(
 
 export function resolveTransaction(
   input: NewTransactionInput,
-  accounts: AccountRecord[]
+  accounts: AccountRecord[],
 ): ResolvedTransaction {
   requirePositiveAmount(input);
   const accountsByName = new Map(accounts.map((account) => [account.name, account]));
@@ -56,9 +52,9 @@ export function resolveTransaction(
             accountId: source.id,
             accountName: source.name,
             delta: -input.amount,
-            currency: source.currency
-          }
-        ]
+            currency: source.currency,
+          },
+        ],
       };
     }
     case 'income': {
@@ -71,9 +67,9 @@ export function resolveTransaction(
             accountId: target.id,
             accountName: target.name,
             delta: input.amount,
-            currency: target.currency
-          }
-        ]
+            currency: target.currency,
+          },
+        ],
       };
     }
     case 'transfer': {
@@ -87,15 +83,15 @@ export function resolveTransaction(
             accountId: source.id,
             accountName: source.name,
             delta: -input.amount,
-            currency: source.currency
+            currency: source.currency,
           },
           {
             accountId: target.id,
             accountName: target.name,
             delta: input.amount,
-            currency: target.currency
-          }
-        ]
+            currency: target.currency,
+          },
+        ],
       };
     }
     case 'credit_spending': {
@@ -108,9 +104,9 @@ export function resolveTransaction(
             accountId: target.id,
             accountName: target.name,
             delta: input.amount,
-            currency: target.currency
-          }
-        ]
+            currency: target.currency,
+          },
+        ],
       };
     }
     case 'credit_repayment': {
@@ -124,15 +120,15 @@ export function resolveTransaction(
             accountId: source.id,
             accountName: source.name,
             delta: -input.amount,
-            currency: source.currency
+            currency: source.currency,
           },
           {
             accountId: target.id,
             accountName: target.name,
             delta: -input.amount,
-            currency: target.currency
-          }
-        ]
+            currency: target.currency,
+          },
+        ],
       };
     }
     default:

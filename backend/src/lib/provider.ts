@@ -20,20 +20,15 @@ export function normalizeProviderBaseUrl(endpoint: string): string {
     throw new HttpError(400, 'API 地址不能为空');
   }
 
-  return normalized.replace(
-    /\/v1(?:\/chat\/completions|\/responses|\/models)?$/,
-    ''
-  );
+  return normalized.replace(/\/v1(?:\/chat\/completions|\/responses|\/models)?$/, '');
 }
 
 export function buildEndpointUrl(
   endpoint: string,
-  protocol: 'chat_completions' | 'responses'
+  protocol: 'chat_completions' | 'responses',
 ): string {
   const baseUrl = normalizeProviderBaseUrl(endpoint);
-  return protocol === 'responses'
-    ? `${baseUrl}/v1/responses`
-    : `${baseUrl}/v1/chat/completions`;
+  return protocol === 'responses' ? `${baseUrl}/v1/responses` : `${baseUrl}/v1/chat/completions`;
 }
 
 export function deriveModelsUrl(endpoint: string): string {
@@ -42,11 +37,11 @@ export function deriveModelsUrl(endpoint: string): string {
 
 export function extractTextPayload(
   protocol: 'chat_completions' | 'responses',
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
 ): string {
   if (protocol === 'chat_completions') {
-    const message = ((payload.choices as Array<Record<string, unknown>> | undefined)?.[0]?.message ??
-      {}) as Record<string, unknown>;
+    const message = ((payload.choices as Array<Record<string, unknown>> | undefined)?.[0]
+      ?.message ?? {}) as Record<string, unknown>;
     const content = message.content;
     if (typeof content === 'string') {
       return content;

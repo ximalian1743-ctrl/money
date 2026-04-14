@@ -14,8 +14,8 @@ if (!window.localStorage || typeof window.localStorage.clear !== 'function') {
       },
       clear: () => {
         store.clear();
-      }
+      },
     },
-    configurable: true
+    configurable: true,
   });
 }
