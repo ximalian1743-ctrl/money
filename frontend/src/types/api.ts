@@ -12,6 +12,7 @@ export interface AccountBalance {
   kind: 'asset' | 'liability';
   currency: Currency;
   balance: number;
+  initialBalance: number;
 }
 
 export interface SummaryData {

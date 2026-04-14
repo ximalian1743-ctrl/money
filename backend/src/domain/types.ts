@@ -27,6 +27,7 @@ export interface AccountBalance {
   kind: AccountKind;
   currency: Currency;
   balance: number;
+  initialBalance: number;
 }
 
 export interface SettingsRecord {

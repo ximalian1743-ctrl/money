@@ -4,13 +4,20 @@ import { getAccounts, getSettings, getSummary, getTransactions } from '../lib/ap
 import type { AccountBalance, PublicSettings, SummaryData, TransactionRecord } from '../types/api';
 
 const fallbackAccounts: AccountBalance[] = [
-  { id: 1, name: '邮储银行存折', kind: 'asset', currency: 'CNY', balance: 0 },
-  { id: 2, name: '现金纸币', kind: 'asset', currency: 'CNY', balance: 0 },
-  { id: 3, name: '现金硬币', kind: 'asset', currency: 'CNY', balance: 0 },
-  { id: 4, name: '中国银行储蓄卡', kind: 'asset', currency: 'CNY', balance: 0 },
-  { id: 5, name: '微信钱包', kind: 'asset', currency: 'CNY', balance: 0 },
-  { id: 6, name: '交通卡西瓜卡', kind: 'asset', currency: 'JPY', balance: 0 },
-  { id: 7, name: 'PayPay 信用卡', kind: 'liability', currency: 'JPY', balance: 0 },
+  { id: 1, name: '邮储银行存折', kind: 'asset', currency: 'CNY', balance: 0, initialBalance: 0 },
+  { id: 2, name: '现金纸币', kind: 'asset', currency: 'CNY', balance: 0, initialBalance: 0 },
+  { id: 3, name: '现金硬币', kind: 'asset', currency: 'CNY', balance: 0, initialBalance: 0 },
+  { id: 4, name: '中国银行储蓄卡', kind: 'asset', currency: 'CNY', balance: 0, initialBalance: 0 },
+  { id: 5, name: '微信钱包', kind: 'asset', currency: 'CNY', balance: 0, initialBalance: 0 },
+  { id: 6, name: '交通卡西瓜卡', kind: 'asset', currency: 'JPY', balance: 0, initialBalance: 0 },
+  {
+    id: 7,
+    name: 'PayPay 信用卡',
+    kind: 'liability',
+    currency: 'JPY',
+    balance: 0,
+    initialBalance: 0,
+  },
 ];
 
 const fallbackSummary: SummaryData = {

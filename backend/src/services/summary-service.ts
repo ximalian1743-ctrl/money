@@ -29,6 +29,7 @@ export class SummaryService {
         kind: account.kind,
         currency: account.currency,
         balance: account.initialBalance,
+        initialBalance: account.initialBalance,
       });
     }
 

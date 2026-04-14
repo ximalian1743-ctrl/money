@@ -36,6 +36,16 @@ export async function getAccounts(): Promise<AccountBalance[]> {
   return payload.accounts;
 }
 
+export async function updateAccountInitialBalance(
+  id: number,
+  initialBalance: number,
+): Promise<void> {
+  await request(`/accounts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ initialBalance }),
+  });
+}
+
 export async function getSummary(): Promise<SummaryData> {
   return request<SummaryData>('/summary');
 }
@@ -86,6 +96,17 @@ export async function parseTransaction(input: {
   fallbackOccurredAt?: string;
 }): Promise<ParsedDraft> {
   const payload = await request<{ draft: ParsedDraft }>('/ai/parse-transaction', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return payload.draft;
+}
+
+export async function parseReceiptImage(input: {
+  imageDataUrl: string;
+  fallbackOccurredAt?: string;
+}): Promise<ParsedDraft> {
+  const payload = await request<{ draft: ParsedDraft }>('/ai/parse-receipt', {
     method: 'POST',
     body: JSON.stringify(input),
   });
