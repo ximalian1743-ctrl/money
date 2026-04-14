@@ -1,21 +1,46 @@
 export type Currency = 'CNY' | 'JPY';
+export type AccountKind = 'asset' | 'liability';
+export type AiProtocol = 'chat_completions' | 'responses';
 export type TransactionType =
   | 'expense'
   | 'income'
   | 'transfer'
   | 'credit_spending'
   | 'credit_repayment';
+export type TransactionOrigin = 'manual' | 'ai';
+
+export interface AccountRecord {
+  id: number;
+  name: string;
+  kind: AccountKind;
+  currency: Currency;
+  initialBalance: number;
+  creditLimit: number;
+  isSystem: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface AccountBalance {
   id: number;
   name: string;
-  kind: 'asset' | 'liability';
+  kind: AccountKind;
   currency: Currency;
   balance: number;
   initialBalance: number;
 }
 
-export interface SummaryData {
+export interface SettingsRecord {
+  cnyToJpyRate: number;
+  jpyToCnyRate: number;
+  aiEndpointUrl: string;
+  aiApiKey: string;
+  aiProtocol: AiProtocol;
+  aiModel: string;
+}
+
+export interface SummaryResult {
   balances: AccountBalance[];
   cnyAssetTotal: number;
   jpyAssetTotal: number;
@@ -27,25 +52,6 @@ export interface SummaryData {
   actualBalanceCnyBase: number;
 }
 
-export interface PublicSettings {
-  cnyToJpyRate: number;
-  jpyToCnyRate: number;
-  aiEndpointUrl: string;
-  aiProtocol: 'chat_completions' | 'responses';
-  aiModel: string;
-  hasApiKey: boolean;
-  aiApiKeyMasked: string;
-}
-
-export interface SettingsInput {
-  cnyToJpyRate: number;
-  jpyToCnyRate: number;
-  aiEndpointUrl: string;
-  aiApiKey: string;
-  aiProtocol: 'chat_completions' | 'responses';
-  aiModel: string;
-}
-
 export interface TransactionRecord {
   id: number;
   type: TransactionType;
@@ -53,27 +59,40 @@ export interface TransactionRecord {
   note: string;
   amount: number;
   currency: Currency;
+  sourceAccountId: number | null;
+  targetAccountId: number | null;
   sourceAccountName: string;
   targetAccountName: string;
   category: string;
   occurredAt: string;
+  createdAt: string;
+  deletedAt: string | null;
+  origin: TransactionOrigin;
+  aiInputText: string;
 }
 
-export interface CreateTransactionInput {
+export interface NewTransactionInput {
   type: TransactionType;
   title: string;
-  note?: string;
   amount: number;
   currency: Currency;
   sourceAccountName?: string;
   targetAccountName?: string;
+  note?: string;
   category?: string;
   occurredAt: string;
-  origin?: 'manual' | 'ai';
+  origin?: TransactionOrigin;
   aiInputText?: string;
 }
 
-export interface ParsedDraft {
+export interface AccountEffect {
+  accountId: number;
+  accountName: string;
+  delta: number;
+  currency: Currency;
+}
+
+export interface ParsedTransactionDraft {
   type: TransactionType;
   title: string;
   amount: number;

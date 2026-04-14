@@ -3,25 +3,23 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "backend",
     "frontend"
   ],
   "scripts": {
-    "dev": "concurrently \"npm --workspace backend run dev\" \"npm --workspace frontend run dev\"",
-    "build": "npm --workspace backend run build && npm --workspace frontend run build",
-    "test": "npm --workspace backend run test && npm --workspace frontend run test",
-    "typecheck": "npm --workspace backend run typecheck && npm --workspace frontend run typecheck",
+    "dev": "npm --workspace frontend run dev",
+    "build": "npm --workspace frontend run build",
+    "test": "npm --workspace frontend run test",
+    "typecheck": "npm --workspace frontend run typecheck",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=20"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
-    "concurrently": "^9.1.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-react": "^7.37.4",

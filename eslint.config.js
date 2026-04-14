@@ -10,13 +10,14 @@ export default tseslint.config(
   {
     ignores: [
       'node_modules/**',
-      'backend/dist/**',
       'frontend/dist/**',
-      'backend/data/**',
+      'frontend/dev-dist/**',
       'frontend/.vite/**',
+      'backend/**',
       'coverage/**',
       '.claude/**',
       'docs/**',
+      'tmp/**',
     ],
   },
   js.configs.recommended,

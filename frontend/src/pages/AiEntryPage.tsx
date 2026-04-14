@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 
-import { createTransaction, parseTransaction } from '../lib/api';
+import { createTransaction, parseReceiptImage, parseTransaction } from '../lib/api';
 import { useAppData } from '../hooks/useAppData';
 import { useMutationState } from '../hooks/useMutationState';
+import { compressImageToDataUrl } from '../lib/image';
 import type { AccountBalance, CreateTransactionInput, ParsedDraft } from '../types/api';
 import { ParsedDraftCard } from '../components/ParsedDraftCard';
 
@@ -12,6 +13,11 @@ interface AiEntryPageProps {
     inputText: string;
     fallbackOccurredAt?: string;
   }) => Promise<ParsedDraft>;
+  parseReceiptImpl?: (input: {
+    imageDataUrl: string;
+    fallbackOccurredAt?: string;
+  }) => Promise<ParsedDraft>;
+  compressImageImpl?: (file: File) => Promise<string>;
   createTransactionImpl?: (input: CreateTransactionInput) => Promise<unknown>;
 }
 
@@ -88,6 +94,8 @@ function mapDraftToTransaction(draft: ParsedDraft): CreateTransactionInput {
 
 export function AiEntryPage({
   parseTransactionImpl = parseTransaction,
+  parseReceiptImpl = parseReceiptImage,
+  compressImageImpl = compressImageToDataUrl,
   createTransactionImpl = createTransaction,
 }: AiEntryPageProps) {
   const appData = useAppData();
@@ -97,6 +105,7 @@ export function AiEntryPage({
     () => loadPersistedAiEntryState().fallbackOccurredAtLocal,
   );
   const [draft, setDraft] = useState<ParsedDraft | null>(() => loadPersistedAiEntryState().draft);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
   function persistState(nextState: PersistedAiEntryState) {
     if (typeof window === 'undefined' || typeof window.localStorage?.setItem !== 'function') {
@@ -124,6 +133,38 @@ export function AiEntryPage({
         draft: nextDraft,
       });
     } catch {
+      setDraft(null);
+      persistState({
+        inputText,
+        fallbackOccurredAtLocal,
+        draft: null,
+      });
+    }
+  }
+
+  async function handleImagePick(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+
+    const fallbackOccurredAt = toIsoString(fallbackOccurredAtLocal);
+    try {
+      const imageDataUrl = await compressImageImpl(file);
+      setReceiptPreview(imageDataUrl);
+      const nextDraft = await run(
+        () => parseReceiptImpl({ imageDataUrl, fallbackOccurredAt }),
+        '图片解析完成',
+      );
+      setDraft(nextDraft);
+      persistState({
+        inputText,
+        fallbackOccurredAtLocal,
+        draft: nextDraft,
+      });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '图片解析失败');
       setDraft(null);
       persistState({
         inputText,
@@ -195,9 +236,28 @@ export function AiEntryPage({
           />
         </label>
 
-        <button type="button" className="button" onClick={() => void handleParse()}>
-          {pending ? '解析中...' : '解析'}
-        </button>
+        <div className="form-actions">
+          <button type="button" className="button" onClick={() => void handleParse()}>
+            {pending ? '解析中...' : '解析文字'}
+          </button>
+          <label className="button button--ghost">
+            上传收据图片
+            <input
+              aria-label="上传收据图片"
+              type="file"
+              accept="image/*"
+              onChange={(event) => void handleImagePick(event)}
+              className="visually-hidden-input"
+            />
+          </label>
+        </div>
+
+        {receiptPreview ? (
+          <figure className="receipt-preview">
+            <img src={receiptPreview} alt="上传的收据预览" />
+            <figcaption>已识别的收据，可再次点击按钮替换</figcaption>
+          </figure>
+        ) : null}
 
         {message ? <p className="status">{message}</p> : null}
       </div>

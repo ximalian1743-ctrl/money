@@ -6,9 +6,16 @@ import { ManualEntryPage } from '../pages/ManualEntryPage';
 import type { AccountBalance } from '../types/api';
 
 const accounts: AccountBalance[] = [
-  { id: 2, name: '现金纸币', kind: 'asset', currency: 'CNY', balance: 0 },
-  { id: 6, name: '交通卡西瓜卡', kind: 'asset', currency: 'JPY', balance: 0 },
-  { id: 7, name: 'PayPay 信用卡', kind: 'liability', currency: 'JPY', balance: 0 },
+  { id: 2, name: '现金纸币', kind: 'asset', currency: 'CNY', balance: 0, initialBalance: 0 },
+  { id: 6, name: '交通卡西瓜卡', kind: 'asset', currency: 'JPY', balance: 0, initialBalance: 0 },
+  {
+    id: 7,
+    name: 'PayPay 信用卡',
+    kind: 'liability',
+    currency: 'JPY',
+    balance: 0,
+    initialBalance: 0,
+  },
 ];
 
 test('submits a manual expense', async () => {

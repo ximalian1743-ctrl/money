@@ -4,7 +4,7 @@ import { SummaryCard } from '../components/SummaryCard';
 import { useAppData } from '../hooks/useAppData';
 
 export function OverviewPage() {
-  const { accounts, summary, settings, error } = useAppData();
+  const { accounts, summary, settings, error, reload } = useAppData();
 
   return (
     <section className="stack">
@@ -62,7 +62,7 @@ export function OverviewPage() {
           <h2>账户余额</h2>
           <p>PayPay 信用卡只计入欠款，不计入总存款。</p>
         </div>
-        <AccountBalanceList accounts={accounts} rates={settings} />
+        <AccountBalanceList accounts={accounts} rates={settings} onAccountUpdated={reload} />
       </section>
 
       {error ? <p className="status status--warning">当前展示的是离线占位数据：{error}</p> : null}

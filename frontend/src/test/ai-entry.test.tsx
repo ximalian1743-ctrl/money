@@ -6,8 +6,15 @@ import { AiEntryPage } from '../pages/AiEntryPage';
 import type { AccountBalance, ParsedDraft } from '../types/api';
 
 const accounts: AccountBalance[] = [
-  { id: 2, name: '现金纸币', kind: 'asset', currency: 'CNY', balance: 0 },
-  { id: 7, name: 'PayPay 信用卡', kind: 'liability', currency: 'JPY', balance: 0 },
+  { id: 2, name: '现金纸币', kind: 'asset', currency: 'CNY', balance: 0, initialBalance: 0 },
+  {
+    id: 7,
+    name: 'PayPay 信用卡',
+    kind: 'liability',
+    currency: 'JPY',
+    balance: 0,
+    initialBalance: 0,
+  },
 ];
 
 const draft: ParsedDraft = {
@@ -43,7 +50,7 @@ test('parses a Chinese short sentence and shows draft preview', async () => {
   await user.type(screen.getByLabelText('记账内容'), '午饭38元，用现金纸币');
   await user.clear(screen.getByLabelText('基准时间'));
   await user.type(screen.getByLabelText('基准时间'), '2026-04-14T09:30');
-  await user.click(screen.getByRole('button', { name: '解析' }));
+  await user.click(screen.getByRole('button', { name: '解析文字' }));
 
   const expectedFallbackOccurredAt = new Date('2026-04-14T09:30').toISOString();
   expect(parseTransactionImpl).toHaveBeenCalledWith({
@@ -81,7 +88,7 @@ test('restores cached ai input and draft after remount', async () => {
   );
 
   await user.type(screen.getByLabelText('记账内容'), '午饭38元，用现金纸币');
-  await user.click(screen.getByRole('button', { name: '解析' }));
+  await user.click(screen.getByRole('button', { name: '解析文字' }));
   expect(await screen.findByText('解析结果')).toBeInTheDocument();
 
   view.unmount();
