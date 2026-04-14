@@ -13,6 +13,10 @@ export interface AccountBalance {
   currency: Currency;
   balance: number;
   initialBalance: number;
+  creditLimit: number;
+  monthlyBillingDay?: number;
+  nextMonthRepayment?: number;
+  monthAfterNextRepayment?: number;
 }
 
 export interface SummaryData {

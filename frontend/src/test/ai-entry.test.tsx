@@ -6,14 +6,15 @@ import { AiEntryPage } from '../pages/AiEntryPage';
 import type { AccountBalance, ParsedDraft } from '../types/api';
 
 const accounts: AccountBalance[] = [
-  { id: 2, name: '现金纸币', kind: 'asset', currency: 'CNY', balance: 0, initialBalance: 0 },
+  { id: 2, name: '现金纸币', kind: 'asset', currency: 'CNY', balance: 0, initialBalance: 0, creditLimit: 0 },
   {
-    id: 7,
+    id: 8,
     name: 'PayPay 信用卡',
     kind: 'liability',
     currency: 'JPY',
     balance: 0,
     initialBalance: 0,
+    creditLimit: 100000,
   },
 ];
 
@@ -61,7 +62,7 @@ test('parses a Chinese short sentence and shows draft preview', async () => {
   expect(await screen.findByText('解析结果')).toBeInTheDocument();
   expect(await screen.findByText('现金纸币')).toBeInTheDocument();
   expect(await screen.findByText('CNY ¥38.00')).toBeInTheDocument();
-  expect(await screen.findByText('JPY JP¥760')).toBeInTheDocument();
+  expect(await screen.findByText('JPY 760')).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: '确认入账' }));
 

@@ -6,12 +6,13 @@ const DB_NAME = 'money-record';
 const DB_VERSION = 1;
 
 const DEFAULT_ACCOUNTS: ReadonlyArray<Omit<AccountRecord, 'id' | 'createdAt' | 'updatedAt'>> = [
-  { name: '邮储银行存折', kind: 'asset', currency: 'CNY', initialBalance: 0, creditLimit: 0, isSystem: true, isActive: true },
-  { name: '现金纸币', kind: 'asset', currency: 'CNY', initialBalance: 0, creditLimit: 0, isSystem: true, isActive: true },
-  { name: '现金硬币', kind: 'asset', currency: 'CNY', initialBalance: 0, creditLimit: 0, isSystem: true, isActive: true },
+  { name: '邮储银行存折', kind: 'asset', currency: 'JPY', initialBalance: 0, creditLimit: 0, isSystem: true, isActive: true },
+  { name: '现金纸币', kind: 'asset', currency: 'JPY', initialBalance: 0, creditLimit: 0, isSystem: true, isActive: true },
+  { name: '现金硬币', kind: 'asset', currency: 'JPY', initialBalance: 0, creditLimit: 0, isSystem: true, isActive: true },
   { name: '中国银行储蓄卡', kind: 'asset', currency: 'CNY', initialBalance: 0, creditLimit: 0, isSystem: true, isActive: true },
   { name: '微信钱包', kind: 'asset', currency: 'CNY', initialBalance: 0, creditLimit: 0, isSystem: true, isActive: true },
   { name: '交通卡西瓜卡', kind: 'asset', currency: 'JPY', initialBalance: 0, creditLimit: 0, isSystem: true, isActive: true },
+  { name: 'PayPay 电子钱包', kind: 'asset', currency: 'JPY', initialBalance: 0, creditLimit: 0, isSystem: true, isActive: true },
   { name: 'PayPay 信用卡', kind: 'liability', currency: 'JPY', initialBalance: 0, creditLimit: 100000, isSystem: true, isActive: true },
 ];
 
@@ -69,12 +70,49 @@ async function seedIfEmpty(db: IDBPDatabase): Promise<void> {
       await tx.store.add({ ...account, createdAt: now, updatedAt: now });
     }
     await tx.done;
+  } else {
+    await migrateAccounts(db);
   }
 
   const existingSettings = await db.get('settings', 'singleton');
   if (!existingSettings) {
     await db.put('settings', { id: 'singleton', ...DEFAULT_SETTINGS });
   }
+}
+
+// 迁移现有账户数据：更新货币设置、补充新账户
+// 该函数幂等，每次打开数据库时运行
+export async function migrateAccounts(db: IDBPDatabase): Promise<void> {
+  const now = new Date().toISOString();
+  const allAccounts = (await db.getAll('accounts')) as AccountRecord[];
+
+  const tx = db.transaction('accounts', 'readwrite');
+
+  // 将邮储银行存折/现金纸币/现金硬币从人民币改为日元
+  const jpyAccountNames = ['邮储银行存折', '现金纸币', '现金硬币'];
+  for (const account of allAccounts) {
+    if (jpyAccountNames.includes(account.name) && account.currency === 'CNY') {
+      await tx.store.put({ ...account, currency: 'JPY', updatedAt: now });
+    }
+  }
+
+  // 添加 PayPay 电子钱包（如不存在）
+  const hasWallet = allAccounts.some((a) => a.name === 'PayPay 电子钱包');
+  if (!hasWallet) {
+    await tx.store.add({
+      name: 'PayPay 电子钱包',
+      kind: 'asset',
+      currency: 'JPY',
+      initialBalance: 0,
+      creditLimit: 0,
+      isSystem: true,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  await tx.done;
 }
 
 export async function listAccounts(): Promise<AccountRecord[]> {
@@ -194,6 +232,8 @@ export async function importAll(payload: BackupPayload): Promise<void> {
   }
   await tx.objectStore('settings').put({ id: 'singleton', ...payload.settings });
   await tx.done;
+  // 旧版备份导入后运行迁移，补全货币变更和新账户
+  await migrateAccounts(db);
 }
 
 export async function resetDb(): Promise<void> {

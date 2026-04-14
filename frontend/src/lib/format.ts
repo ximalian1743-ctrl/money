@@ -5,11 +5,26 @@ export interface ExchangeRates {
   jpyToCnyRate: number;
 }
 
+function formatJpy(value: number): string {
+  const rounded = Math.round(value);
+  const abs = Math.abs(rounded);
+  const sign = rounded < 0 ? '-' : '';
+  if (abs >= 10000) {
+    const wan = Math.floor(abs / 10000);
+    const remainder = abs % 10000;
+    return remainder === 0 ? `${sign}${wan}万` : `${sign}${wan}万${remainder}`;
+  }
+  return `${sign}${abs}`;
+}
+
 export function formatCurrency(value: number, currency: Currency): string {
+  if (currency === 'JPY') {
+    return formatJpy(value);
+  }
   return new Intl.NumberFormat('zh-CN', {
     style: 'currency',
-    currency,
-    maximumFractionDigits: currency === 'JPY' ? 0 : 2,
+    currency: 'CNY',
+    maximumFractionDigits: 2,
   }).format(value);
 }
 

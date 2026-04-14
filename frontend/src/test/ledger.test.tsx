@@ -28,7 +28,7 @@ test('deletes a transaction from ledger list', async () => {
 
   expect(screen.getByText('午饭')).toBeInTheDocument();
   expect(screen.getByText('CNY ¥38.00')).toBeInTheDocument();
-  expect(screen.getByText('JPY JP¥760')).toBeInTheDocument();
+  expect(screen.getByText('JPY 760')).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: '删除 午饭' }));
 

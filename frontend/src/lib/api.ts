@@ -35,6 +35,10 @@ async function loadAccountBalances(): Promise<AccountBalance[]> {
     currency: a.currency,
     balance: a.initialBalance,
     initialBalance: a.initialBalance,
+    creditLimit: a.creditLimit,
+    monthlyBillingDay: a.monthlyBillingDay,
+    nextMonthRepayment: a.nextMonthRepayment,
+    monthAfterNextRepayment: a.monthAfterNextRepayment,
   }));
   return computeAccountBalances(seeded, transactions);
 }
@@ -48,6 +52,19 @@ export async function updateAccountInitialBalance(
   initialBalance: number,
 ): Promise<void> {
   await db.updateAccount(id, { initialBalance });
+}
+
+export async function updateAccountDetails(
+  id: number,
+  patch: Partial<{
+    initialBalance: number;
+    creditLimit: number;
+    monthlyBillingDay: number;
+    nextMonthRepayment: number;
+    monthAfterNextRepayment: number;
+  }>,
+): Promise<void> {
+  await db.updateAccount(id, patch);
 }
 
 export async function getSummary(): Promise<SummaryData> {

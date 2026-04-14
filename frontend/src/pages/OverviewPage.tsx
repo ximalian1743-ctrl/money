@@ -60,7 +60,7 @@ export function OverviewPage() {
       <section className="panel">
         <div className="panel__header">
           <h2>账户余额</h2>
-          <p>PayPay 信用卡只计入欠款，不计入总存款。</p>
+          <p>PayPay 信用卡只计入欠款，不计入总存款。点击「编辑信息」可设置额度和还款计划。</p>
         </div>
         <AccountBalanceList accounts={accounts} rates={settings} onAccountUpdated={reload} />
       </section>
