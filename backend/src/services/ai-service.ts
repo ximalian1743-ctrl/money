@@ -137,6 +137,13 @@ function buildSystemPrompt(accountNames: string[], fallbackOccurredAt?: string):
     'type 仅允许: expense,income,transfer,credit_spending,credit_repayment。',
     'currency 仅允许: CNY,JPY。',
     `可用账户: ${accountNames.join('、')}。`,
+    '字段语义（严格遵守）:',
+    '- expense: accountName=扣款账户（资产），targetAccountName 留空。',
+    '- income: targetAccountName=入账账户（资产），accountName 留空。',
+    '- transfer: accountName=转出账户，targetAccountName=转入账户（都是资产）。',
+    '- credit_spending: targetAccountName=信用卡/负债账户，accountName 留空。',
+    '- credit_repayment: accountName=还款来源（资产），targetAccountName=被还的负债账户。',
+    '如果用户输入是"设置初始金额/调整初始余额"之类的账户设置诉求（不是一笔流水），请在 warnings 里提醒用户到总览页直接编辑账户初始余额，并仍按 income 解析以便估算。',
     '如果无法确定账户，请填空字符串并在 warnings 中说明。',
   ];
 
