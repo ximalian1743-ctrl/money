@@ -298,6 +298,43 @@ a {
   color: var(--danger);
 }
 
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: #fffaf0;
+  font-weight: 600;
+  z-index: 999;
+  transition: top 120ms ease;
+}
+
+.skip-link:focus {
+  top: 12px;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.error-message {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(180, 79, 40, 0.08);
+  color: var(--danger);
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
 .bottom-nav {
   position: fixed;
   left: 16px;
