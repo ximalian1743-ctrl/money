@@ -94,5 +94,23 @@ export function normalizeParsedDraft(
     warnings,
   });
 
-  return draft;
+  return applyAccountFieldFallback(draft);
+}
+
+function applyAccountFieldFallback(draft: ParsedTransactionDraft): ParsedTransactionDraft {
+  switch (draft.type) {
+    case 'income':
+    case 'credit_spending':
+      if (!draft.targetAccountName && draft.accountName) {
+        return { ...draft, targetAccountName: draft.accountName, accountName: '' };
+      }
+      return draft;
+    case 'expense':
+      if (!draft.accountName && draft.targetAccountName) {
+        return { ...draft, accountName: draft.targetAccountName, targetAccountName: '' };
+      }
+      return draft;
+    default:
+      return draft;
+  }
 }
