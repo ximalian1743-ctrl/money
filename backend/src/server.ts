@@ -7,6 +7,9 @@ const config = getConfig();
 const app = createApp({
   db: createFileDatabase(config.databasePath),
   corsOrigin: config.corsOrigin,
+  enableRateLimit: true,
+  enableRequestLogger: true,
+  exposeErrorStack: config.nodeEnv !== 'production',
 });
 
 app.listen(config.port, () => {

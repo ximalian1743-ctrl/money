@@ -48,4 +48,10 @@ export const schemaStatements = [
     error_message text not null default '',
     created_at text not null
   )`,
+  `create index if not exists idx_transactions_occurred_at on transactions(occurred_at)`,
+  `create index if not exists idx_transactions_deleted_at on transactions(deleted_at)`,
+  `create index if not exists idx_transactions_source_account on transactions(source_account_id)`,
+  `create index if not exists idx_transactions_target_account on transactions(target_account_id)`,
+  `create index if not exists idx_accounts_is_active on accounts(is_active)`,
+  `create index if not exists idx_ai_parse_logs_created_at on ai_parse_logs(created_at)`,
 ];

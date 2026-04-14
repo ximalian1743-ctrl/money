@@ -202,3 +202,67 @@ test('POST /api/ai/parse-transaction uses provided fallback time when model omit
   assert.equal(response.status, 200);
   assert.equal(payload.draft.occurredAt, fallbackOccurredAt);
 });
+
+test('responses include helmet security headers and no x-powered-by', async () => {
+  const app = createApp();
+  const server = app.listen(0);
+  const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('Expected an address object');
+
+  const response = await fetch(`http://127.0.0.1:${address.port}/api/health`);
+  await response.text();
+  await new Promise<void>((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-powered-by'), null);
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  assert.ok(response.headers.get('x-dns-prefetch-control'));
+});
+
+test('rate limit returns 429 once the window is exceeded', async () => {
+  const app = createApp({ enableRateLimit: true });
+  const server = app.listen(0);
+  const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('Expected an address object');
+
+  const url = `http://127.0.0.1:${address.port}/api/health`;
+  const statuses: number[] = [];
+  for (let i = 0; i < 125; i += 1) {
+    const response = await fetch(url);
+    await response.text();
+    statuses.push(response.status);
+  }
+
+  await new Promise<void>((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
+
+  assert.ok(statuses.includes(429), 'expected at least one 429 status');
+  assert.equal(
+    statuses.slice(0, 120).every((s) => s === 200),
+    true,
+  );
+});
+
+test('malformed JSON body returns 400 from the unified error handler', async () => {
+  const app = createApp();
+  const server = app.listen(0);
+  const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('Expected an address object');
+
+  const response = await fetch(`http://127.0.0.1:${address.port}/api/settings`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: '{not json',
+  });
+  const payload = (await response.json()) as { error: string };
+
+  await new Promise<void>((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
+
+  assert.equal(response.status, 400);
+  assert.match(payload.error, /JSON/);
+});
