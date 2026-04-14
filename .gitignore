@@ -5,3 +5,4 @@ backend/data/
 frontend/.vite/
 coverage/
 .claude/
+tmp/
