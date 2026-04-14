@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { getSettings, getSummary, getTransactions } from '../lib/api';
 import type { AccountBalance, PublicSettings, SummaryData, TransactionRecord } from '../types/api';
@@ -101,6 +101,7 @@ const fallbackSettings: PublicSettings = {
 };
 
 export function useAppData() {
+  const mountedRef = useRef(true);
   const [accounts, setAccounts] = useState<AccountBalance[]>(fallbackAccounts);
   const [summary, setSummary] = useState<SummaryData>(fallbackSummary);
   const [settings, setSettings] = useState<PublicSettings>(fallbackSettings);
@@ -109,6 +110,7 @@ export function useAppData() {
   const [error, setError] = useState('');
 
   async function reload() {
+    if (!mountedRef.current) return;
     setLoading(true);
     setError('');
 
@@ -118,20 +120,26 @@ export function useAppData() {
         getSettings(),
         getTransactions().catch(() => []),
       ]);
+      if (!mountedRef.current) return;
       const nextAccounts = nextSummary.balances;
       setAccounts(nextAccounts);
       setSummary(nextSummary);
       setSettings(nextSettings);
       setTransactions(nextTransactions);
     } catch (requestError) {
+      if (!mountedRef.current) return;
       setError(requestError instanceof Error ? requestError.message : '数据加载失败');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     void reload();
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   return {
