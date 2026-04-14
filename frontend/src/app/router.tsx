@@ -1,11 +1,37 @@
+import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 
 import { Layout } from '../components/Layout';
-import { AiEntryPage } from '../pages/AiEntryPage';
-import { LedgerPage } from '../pages/LedgerPage';
-import { ManualEntryPage } from '../pages/ManualEntryPage';
-import { OverviewPage } from '../pages/OverviewPage';
-import { SettingsPage } from '../pages/SettingsPage';
+
+const OverviewPage = lazy(() =>
+  import('../pages/OverviewPage').then((m) => ({ default: m.OverviewPage })),
+);
+const ManualEntryPage = lazy(() =>
+  import('../pages/ManualEntryPage').then((m) => ({ default: m.ManualEntryPage })),
+);
+const AiEntryPage = lazy(() =>
+  import('../pages/AiEntryPage').then((m) => ({ default: m.AiEntryPage })),
+);
+const LedgerPage = lazy(() =>
+  import('../pages/LedgerPage').then((m) => ({ default: m.LedgerPage })),
+);
+const SettingsPage = lazy(() =>
+  import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+);
+
+function RouteSuspense({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <p className="status" role="status" aria-live="polite">
+          加载中…
+        </p>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 export const router = createBrowserRouter([
   {
@@ -14,23 +40,43 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <OverviewPage />,
+        element: (
+          <RouteSuspense>
+            <OverviewPage />
+          </RouteSuspense>
+        ),
       },
       {
         path: 'manual',
-        element: <ManualEntryPage />,
+        element: (
+          <RouteSuspense>
+            <ManualEntryPage />
+          </RouteSuspense>
+        ),
       },
       {
         path: 'ai',
-        element: <AiEntryPage />,
+        element: (
+          <RouteSuspense>
+            <AiEntryPage />
+          </RouteSuspense>
+        ),
       },
       {
         path: 'ledger',
-        element: <LedgerPage />,
+        element: (
+          <RouteSuspense>
+            <LedgerPage />
+          </RouteSuspense>
+        ),
       },
       {
         path: 'settings',
-        element: <SettingsPage />,
+        element: (
+          <RouteSuspense>
+            <SettingsPage />
+          </RouteSuspense>
+        ),
       },
     ],
   },

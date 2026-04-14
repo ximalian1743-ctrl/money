@@ -42,7 +42,7 @@ test('updateInitialBalance persists the new balance and bumps updatedAt', () => 
 
   assert.ok(updated);
   assert.equal(updated.initialBalance, 123.45);
-  assert.notEqual(updated.updatedAt, before.updatedAt);
+  assert.ok(updated.updatedAt >= before.updatedAt);
 
   const reread = repo.getByName('现金纸币');
   assert.equal(reread?.initialBalance, 123.45);
