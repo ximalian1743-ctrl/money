@@ -6,5 +6,6 @@ export function getConfig() {
     corsOrigin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
     databasePath:
       process.env.MONEY_RECORD_DB_PATH ?? path.join(process.cwd(), 'data', 'money-record.sqlite'),
+    nodeEnv: process.env.NODE_ENV ?? 'development',
   };
 }

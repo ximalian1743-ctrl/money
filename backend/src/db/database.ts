@@ -7,6 +7,7 @@ import { schemaStatements } from './schema.js';
 
 export function initializeDatabase(db: DatabaseSync): DatabaseSync {
   db.exec('pragma foreign_keys = on');
+  db.exec('pragma busy_timeout = 5000');
 
   for (const statement of schemaStatements) {
     db.exec(statement);
@@ -23,5 +24,8 @@ export function createMemoryDatabase(): DatabaseSync {
 export function createFileDatabase(filePath?: string): DatabaseSync {
   const resolvedPath = filePath ?? path.join(process.cwd(), 'data', 'money-record.sqlite');
   fs.mkdirSync(path.dirname(resolvedPath), { recursive: true });
-  return initializeDatabase(new DatabaseSync(resolvedPath));
+  const db = new DatabaseSync(resolvedPath);
+  db.exec('pragma journal_mode = WAL');
+  db.exec('pragma synchronous = NORMAL');
+  return initializeDatabase(db);
 }
