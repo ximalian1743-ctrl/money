@@ -14,13 +14,24 @@ export function deriveProtocol(endpoint: string): 'chat_completions' | 'response
 }
 
 export function normalizeProviderBaseUrl(endpoint: string): string {
-  const normalized = endpoint.trim().replace(/\/+$/, '');
+  const trimmed = endpoint.trim().replace(/\/+$/, '');
 
-  if (!normalized) {
+  if (!trimmed) {
     throw new HttpError(400, 'API 地址不能为空');
   }
 
-  return normalized.replace(/\/v1(?:\/chat\/completions|\/responses|\/models)?$/, '');
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const withoutApiPath = withScheme.replace(
+    /\/v1(?:\/chat\/completions|\/responses|\/models)?$/,
+    '',
+  );
+
+  try {
+    const parsed = new URL(withoutApiPath);
+    return `${parsed.origin}${parsed.pathname.replace(/\/+$/, '')}`;
+  } catch {
+    throw new HttpError(400, 'API 地址无效');
+  }
 }
 
 export function buildEndpointUrl(

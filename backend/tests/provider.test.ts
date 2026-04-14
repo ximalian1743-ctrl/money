@@ -20,6 +20,17 @@ test('deriveModelsUrl appends models path for provider base url', () => {
   assert.equal(deriveModelsUrl('https://example.com'), 'https://example.com/v1/models');
 });
 
+test('deriveModelsUrl auto-prefixes https when scheme is missing', () => {
+  assert.equal(deriveModelsUrl('api.example.com'), 'https://api.example.com/v1/models');
+});
+
+test('buildEndpointUrl auto-prefixes https when scheme is missing', () => {
+  assert.equal(
+    buildEndpointUrl('api.example.com', 'chat_completions'),
+    'https://api.example.com/v1/chat/completions',
+  );
+});
+
 test('deriveProtocol detects responses endpoint', () => {
   assert.equal(deriveProtocol('https://example.com/v1/responses'), 'responses');
 });
