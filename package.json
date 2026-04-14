@@ -1,0 +1,16 @@
+{
+  "name": "money-record",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm --workspace backend run dev\" \"npm --workspace frontend run dev\"",
+    "build": "npm --workspace backend run build && npm --workspace frontend run build",
+    "test": "npm --workspace backend run test && npm --workspace frontend run test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
