@@ -5,60 +5,89 @@ import type {
   PublicSettings,
   SettingsInput,
   SummaryData,
-  TransactionRecord,
+  TransactionRecord as ApiTransactionRecord,
 } from '../types/api';
+import * as db from './db';
+import { computeAccountBalances, computeSummary } from './domain/summary';
+import { resolveTransaction } from './domain/transactions';
+import type { AccountRecord, SettingsRecord, TransactionRecord } from './domain/types';
+import {
+  parseReceiptImage as aiParseReceipt,
+  parseTransactionText,
+  loadModels as aiLoadModels,
+} from './ai/client';
+import {
+  buildEndpointUrl,
+  deriveProtocol,
+  maskApiKey,
+  normalizeProviderBaseUrl,
+} from './ai/provider';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001/api';
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      'content-type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  });
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  const payload = (await response.json()) as T & { error?: string };
-  if (!response.ok) {
-    throw new Error(payload.error ?? '请求失败');
-  }
-
-  return payload;
+async function loadAccountBalances(): Promise<AccountBalance[]> {
+  const [accounts, transactions] = await Promise.all([
+    db.listAccounts(),
+    db.listActiveTransactions(),
+  ]);
+  const seeded = accounts.map((a) => ({
+    id: a.id,
+    name: a.name,
+    kind: a.kind,
+    currency: a.currency,
+    balance: a.initialBalance,
+    initialBalance: a.initialBalance,
+  }));
+  return computeAccountBalances(seeded, transactions);
 }
 
 export async function getAccounts(): Promise<AccountBalance[]> {
-  const payload = await request<{ accounts: AccountBalance[] }>('/accounts');
-  return payload.accounts;
+  return loadAccountBalances();
 }
 
 export async function updateAccountInitialBalance(
   id: number,
   initialBalance: number,
 ): Promise<void> {
-  await request(`/accounts/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ initialBalance }),
-  });
+  await db.updateAccount(id, { initialBalance });
 }
 
 export async function getSummary(): Promise<SummaryData> {
-  return request<SummaryData>('/summary');
+  const [balances, settings] = await Promise.all([loadAccountBalances(), db.getSettings()]);
+  return computeSummary(balances, settings);
+}
+
+function toPublicSettings(record: SettingsRecord): PublicSettings {
+  return {
+    cnyToJpyRate: record.cnyToJpyRate,
+    jpyToCnyRate: record.jpyToCnyRate,
+    aiEndpointUrl: record.aiEndpointUrl,
+    aiProtocol: record.aiProtocol,
+    aiModel: record.aiModel,
+    hasApiKey: Boolean(record.aiApiKey),
+    aiApiKeyMasked: maskApiKey(record.aiApiKey),
+  };
 }
 
 export async function getSettings(): Promise<PublicSettings> {
-  return request<PublicSettings>('/settings');
+  const record = await db.getSettings();
+  return toPublicSettings(record);
 }
 
 export async function saveSettings(input: SettingsInput): Promise<PublicSettings> {
-  return request<PublicSettings>('/settings', {
-    method: 'PUT',
-    body: JSON.stringify(input),
-  });
+  const existing = await db.getSettings();
+  const aiProtocol = input.aiProtocol ?? deriveProtocol(input.aiEndpointUrl);
+  const normalizedEndpoint = input.aiEndpointUrl
+    ? buildEndpointUrl(input.aiEndpointUrl, aiProtocol)
+    : '';
+  const next: SettingsRecord = {
+    cnyToJpyRate: input.cnyToJpyRate,
+    jpyToCnyRate: input.jpyToCnyRate,
+    aiEndpointUrl: normalizedEndpoint,
+    aiApiKey: input.aiApiKey || existing.aiApiKey,
+    aiProtocol,
+    aiModel: input.aiModel,
+  };
+  const saved = await db.saveSettings(next);
+  return toPublicSettings(saved);
 }
 
 export async function loadModels(input: {
@@ -66,49 +95,107 @@ export async function loadModels(input: {
   aiApiKey?: string;
   aiProtocol?: 'chat_completions' | 'responses';
 }): Promise<string[]> {
-  const payload = await request<{ models: string[] }>('/settings/models', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-  return payload.models;
+  const existing = await db.getSettings();
+  const aiEndpointUrl = input.aiEndpointUrl || existing.aiEndpointUrl;
+  const aiApiKey = input.aiApiKey || existing.aiApiKey;
+  if (!aiEndpointUrl || !aiApiKey) {
+    throw new Error('请先填写 API 地址和 Key');
+  }
+  const baseUrl = normalizeProviderBaseUrl(aiEndpointUrl);
+  return aiLoadModels({ aiEndpointUrl: baseUrl, aiApiKey });
 }
 
-export async function createTransaction(input: CreateTransactionInput) {
-  return request('/transactions', {
-    method: 'POST',
-    body: JSON.stringify(input),
+function resolveName(accounts: AccountRecord[], id: number | null): string {
+  if (id === null) return '';
+  return accounts.find((a) => a.id === id)?.name ?? '';
+}
+
+function toApiTransaction(record: TransactionRecord): ApiTransactionRecord {
+  return {
+    id: record.id,
+    type: record.type,
+    title: record.title,
+    note: record.note,
+    amount: record.amount,
+    currency: record.currency,
+    sourceAccountName: record.sourceAccountName,
+    targetAccountName: record.targetAccountName,
+    category: record.category,
+    occurredAt: record.occurredAt,
+  };
+}
+
+export async function createTransaction(input: CreateTransactionInput): Promise<void> {
+  const accounts = await db.listAccounts();
+  const resolved = resolveTransaction(
+    {
+      type: input.type,
+      title: input.title,
+      amount: input.amount,
+      currency: input.currency,
+      sourceAccountName: input.sourceAccountName,
+      targetAccountName: input.targetAccountName,
+      note: input.note,
+      category: input.category,
+      occurredAt: input.occurredAt,
+      origin: input.origin,
+      aiInputText: input.aiInputText,
+    },
+    accounts,
+  );
+
+  await db.createTransaction({
+    type: input.type,
+    title: input.title,
+    note: input.note ?? '',
+    amount: input.amount,
+    currency: input.currency,
+    sourceAccountId: resolved.sourceAccountId,
+    targetAccountId: resolved.targetAccountId,
+    sourceAccountName: resolveName(accounts, resolved.sourceAccountId),
+    targetAccountName: resolveName(accounts, resolved.targetAccountId),
+    category: input.category ?? '',
+    occurredAt: input.occurredAt,
+    origin: input.origin ?? 'manual',
+    aiInputText: input.aiInputText ?? '',
   });
 }
 
-export async function getTransactions(): Promise<TransactionRecord[]> {
-  const payload = await request<{ transactions: TransactionRecord[] }>('/transactions');
-  return payload.transactions;
+export async function getTransactions(): Promise<ApiTransactionRecord[]> {
+  const records = await db.listActiveTransactions();
+  return records.map(toApiTransaction);
 }
 
 export async function deleteTransaction(id: number): Promise<void> {
-  await request(`/transactions/${id}`, {
-    method: 'DELETE',
-  });
+  const ok = await db.softDeleteTransaction(id);
+  if (!ok) throw new Error('找不到该流水记录');
 }
 
 export async function parseTransaction(input: {
   inputText: string;
   fallbackOccurredAt?: string;
 }): Promise<ParsedDraft> {
-  const payload = await request<{ draft: ParsedDraft }>('/ai/parse-transaction', {
-    method: 'POST',
-    body: JSON.stringify(input),
+  const [settings, accounts] = await Promise.all([db.getSettings(), db.listAccounts()]);
+  return parseTransactionText({
+    settings,
+    accounts,
+    inputText: input.inputText,
+    fallbackOccurredAt: input.fallbackOccurredAt,
   });
-  return payload.draft;
 }
 
 export async function parseReceiptImage(input: {
   imageDataUrl: string;
   fallbackOccurredAt?: string;
 }): Promise<ParsedDraft> {
-  const payload = await request<{ draft: ParsedDraft }>('/ai/parse-receipt', {
-    method: 'POST',
-    body: JSON.stringify(input),
+  const [settings, accounts] = await Promise.all([db.getSettings(), db.listAccounts()]);
+  return aiParseReceipt({
+    settings,
+    accounts,
+    imageDataUrl: input.imageDataUrl,
+    fallbackOccurredAt: input.fallbackOccurredAt,
   });
-  return payload.draft;
 }
+
+export { exportAll, importAll, resetDb } from './db';
+export type { BackupPayload } from './db';

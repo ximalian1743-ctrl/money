@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { getAccounts, getSettings, getSummary, getTransactions } from '../lib/api';
+import { getSettings, getSummary, getTransactions } from '../lib/api';
 import type { AccountBalance, PublicSettings, SummaryData, TransactionRecord } from '../types/api';
 
 const fallbackAccounts: AccountBalance[] = [
@@ -55,12 +55,12 @@ export function useAppData() {
     setError('');
 
     try {
-      const [nextAccounts, nextSummary, nextSettings, nextTransactions] = await Promise.all([
-        getAccounts(),
+      const [nextSummary, nextSettings, nextTransactions] = await Promise.all([
         getSummary(),
         getSettings(),
         getTransactions().catch(() => []),
       ]);
+      const nextAccounts = nextSummary.balances;
       setAccounts(nextAccounts);
       setSummary(nextSummary);
       setSettings(nextSettings);
