@@ -1,8 +1,4 @@
-import type {
-  AccountEffect,
-  AccountRecord,
-  NewTransactionInput,
-} from './types';
+import type { AccountEffect, AccountRecord, NewTransactionInput } from './types';
 
 interface ResolvedTransaction {
   sourceAccountId: number | null;

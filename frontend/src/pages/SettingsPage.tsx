@@ -221,11 +221,7 @@ export function SettingsPage() {
             className="visually-hidden-input"
           />
         </label>
-        <button
-          type="button"
-          className="button button--ghost"
-          onClick={() => void handleReset()}
-        >
+        <button type="button" className="button button--ghost" onClick={() => void handleReset()}>
           清空本地数据
         </button>
       </div>

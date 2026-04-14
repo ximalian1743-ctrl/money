@@ -91,7 +91,10 @@ export function AccountBalanceList({
         const parsedAfter = draft.monthAfterNextRepayment
           ? Number(draft.monthAfterNextRepayment)
           : undefined;
-        if (parsedDay !== undefined && (!Number.isInteger(parsedDay) || parsedDay < 1 || parsedDay > 31)) {
+        if (
+          parsedDay !== undefined &&
+          (!Number.isInteger(parsedDay) || parsedDay < 1 || parsedDay > 31)
+        ) {
           setErrorMessage('还款日请填 1-31 之间的整数');
           return;
         }
@@ -132,14 +135,24 @@ export function AccountBalanceList({
                   ? ` · 额度 ${formatCurrency(account.creditLimit, account.currency)}`
                   : null}
               </p>
-              {isCredit && (account.monthlyBillingDay || account.nextMonthRepayment !== undefined || account.monthAfterNextRepayment !== undefined) ? (
+              {isCredit &&
+              (account.monthlyBillingDay ||
+                account.nextMonthRepayment !== undefined ||
+                account.monthAfterNextRepayment !== undefined) ? (
                 <p>
                   {account.monthlyBillingDay ? `还款日 每月${account.monthlyBillingDay}号` : null}
-                  {account.monthlyBillingDay && (account.nextMonthRepayment !== undefined || account.monthAfterNextRepayment !== undefined) ? ' · ' : null}
+                  {account.monthlyBillingDay &&
+                  (account.nextMonthRepayment !== undefined ||
+                    account.monthAfterNextRepayment !== undefined)
+                    ? ' · '
+                    : null}
                   {account.nextMonthRepayment !== undefined
                     ? `下月 ${formatCurrency(account.nextMonthRepayment, account.currency)}`
                     : null}
-                  {account.nextMonthRepayment !== undefined && account.monthAfterNextRepayment !== undefined ? ' / ' : null}
+                  {account.nextMonthRepayment !== undefined &&
+                  account.monthAfterNextRepayment !== undefined
+                    ? ' / '
+                    : null}
                   {account.monthAfterNextRepayment !== undefined
                     ? `下下月 ${formatCurrency(account.monthAfterNextRepayment, account.currency)}`
                     : null}

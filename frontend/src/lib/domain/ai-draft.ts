@@ -16,7 +16,9 @@ const draftSchema = z.object({
 });
 
 function normalizeCurrency(value: unknown): 'CNY' | 'JPY' {
-  const text = String(value ?? '').trim().toUpperCase();
+  const text = String(value ?? '')
+    .trim()
+    .toUpperCase();
   if (text === 'JPY' || text === '日元' || text === '円') return 'JPY';
   return 'CNY';
 }

@@ -6,7 +6,15 @@ import { AiEntryPage } from '../pages/AiEntryPage';
 import type { AccountBalance, ParsedDraft } from '../types/api';
 
 const accounts: AccountBalance[] = [
-  { id: 2, name: '现金纸币', kind: 'asset', currency: 'CNY', balance: 0, initialBalance: 0, creditLimit: 0 },
+  {
+    id: 2,
+    name: '现金纸币',
+    kind: 'asset',
+    currency: 'CNY',
+    balance: 0,
+    initialBalance: 0,
+    creditLimit: 0,
+  },
   {
     id: 8,
     name: 'PayPay 信用卡',

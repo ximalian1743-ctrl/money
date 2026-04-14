@@ -157,7 +157,9 @@ export async function parseReceiptImage(options: {
   return normalizeParsedDraft(raw, stubInput, accounts, fallbackOccurredAt);
 }
 
-export async function loadModels(settings: Pick<SettingsRecord, 'aiEndpointUrl' | 'aiApiKey'>): Promise<string[]> {
+export async function loadModels(
+  settings: Pick<SettingsRecord, 'aiEndpointUrl' | 'aiApiKey'>,
+): Promise<string[]> {
   if (!settings.aiEndpointUrl || !settings.aiApiKey) {
     throw new Error('请先填写 API 地址和 Key');
   }

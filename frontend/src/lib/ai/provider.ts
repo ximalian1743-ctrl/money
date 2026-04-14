@@ -32,10 +32,7 @@ export function deriveModelsUrl(endpoint: string): string {
   return `${normalizeProviderBaseUrl(endpoint)}/v1/models`;
 }
 
-export function extractTextPayload(
-  protocol: AiProtocol,
-  payload: Record<string, unknown>,
-): string {
+export function extractTextPayload(protocol: AiProtocol, payload: Record<string, unknown>): string {
   if (protocol === 'chat_completions') {
     const choices = payload.choices as Array<Record<string, unknown>> | undefined;
     const message = (choices?.[0]?.message ?? {}) as Record<string, unknown>;
