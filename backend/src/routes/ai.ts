@@ -23,5 +23,28 @@ export function createAiRouter(aiService: AiService) {
     }
   });
 
+  router.post('/parse-receipt', async (request, response, next) => {
+    try {
+      const body = z
+        .object({
+          imageDataUrl: z
+            .string()
+            .trim()
+            .regex(/^data:image\/[\w+.-]+;base64,/, '图片必须是 data:image/... 格式'),
+          fallbackOccurredAt: z.string().datetime().optional(),
+        })
+        .parse(request.body);
+
+      response.json({
+        draft: await aiService.parseTransactionFromImage(
+          body.imageDataUrl,
+          body.fallbackOccurredAt,
+        ),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   return router;
 }

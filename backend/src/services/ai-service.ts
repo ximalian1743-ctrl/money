@@ -24,12 +24,47 @@ export class AiService {
     inputText: string,
     fallbackOccurredAt?: string,
   ): Promise<ParsedTransactionDraft> {
+    return this.runParse({
+      inputText,
+      fallbackOccurredAt,
+      userTextContent: inputText,
+    });
+  }
+
+  async parseTransactionFromImage(
+    imageDataUrl: string,
+    fallbackOccurredAt?: string,
+  ): Promise<ParsedTransactionDraft> {
+    const userInstruction =
+      '请从这张票据图片中识别出购买内容、金额、币种、商家/场景，并按约定的 JSON 字段返回。' +
+      '如果无法确定账户，请在 warnings 中提醒用户手动选择。';
+
+    return this.runParse({
+      inputText: `[receipt-image] ${imageDataUrl.slice(0, 64)}...`,
+      fallbackOccurredAt,
+      userTextContent: userInstruction,
+      imageDataUrl,
+    });
+  }
+
+  private async runParse(options: {
+    inputText: string;
+    fallbackOccurredAt?: string;
+    userTextContent: string;
+    imageDataUrl?: string;
+  }): Promise<ParsedTransactionDraft> {
+    const { inputText, fallbackOccurredAt, userTextContent, imageDataUrl } = options;
     const settings = this.settingsRepository.get();
     if (!settings.aiEndpointUrl || !settings.aiApiKey || !settings.aiModel) {
       throw new HttpError(400, '请先完整配置 AI 地址、Key 和模型');
     }
 
     const accounts = this.accountsRepository.list();
+    const systemPrompt = buildSystemPrompt(
+      accounts.map((account) => account.name),
+      fallbackOccurredAt,
+    );
+
     const requestBody =
       settings.aiProtocol === 'responses'
         ? {
@@ -37,40 +72,31 @@ export class AiService {
             input: [
               {
                 role: 'system',
-                content: [
-                  {
-                    type: 'input_text',
-                    text: buildSystemPrompt(
-                      accounts.map((account) => account.name),
-                      fallbackOccurredAt,
-                    ),
-                  },
-                ],
+                content: [{ type: 'input_text', text: systemPrompt }],
               },
               {
                 role: 'user',
-                content: [
-                  {
-                    type: 'input_text',
-                    text: inputText,
-                  },
-                ],
+                content: imageDataUrl
+                  ? [
+                      { type: 'input_text', text: userTextContent },
+                      { type: 'input_image', image_url: imageDataUrl },
+                    ]
+                  : [{ type: 'input_text', text: userTextContent }],
               },
             ],
           }
         : {
             model: settings.aiModel,
             messages: [
-              {
-                role: 'system',
-                content: buildSystemPrompt(
-                  accounts.map((account) => account.name),
-                  fallbackOccurredAt,
-                ),
-              },
+              { role: 'system', content: systemPrompt },
               {
                 role: 'user',
-                content: inputText,
+                content: imageDataUrl
+                  ? [
+                      { type: 'text', text: userTextContent },
+                      { type: 'image_url', image_url: { url: imageDataUrl } },
+                    ]
+                  : userTextContent,
               },
             ],
           };

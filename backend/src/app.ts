@@ -52,7 +52,7 @@ export function createApp(options: CreateAppOptions = {}) {
       origin: options.corsOrigin ?? 'http://localhost:5173',
     }),
   );
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({ limit: '10mb' }));
 
   if (options.enableRequestLogger) {
     app.use(createRequestLogger());
