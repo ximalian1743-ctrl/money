@@ -37,6 +37,7 @@ async function loadAccountBalances(): Promise<AccountBalance[]> {
     initialBalance: a.initialBalance,
     creditLimit: a.creditLimit,
     monthlyBillingDay: a.monthlyBillingDay,
+    paymentDueDay: a.paymentDueDay,
     nextMonthRepayment: a.nextMonthRepayment,
     monthAfterNextRepayment: a.monthAfterNextRepayment,
   }));
@@ -60,6 +61,7 @@ export async function updateAccountDetails(
     initialBalance: number;
     creditLimit: number;
     monthlyBillingDay: number;
+    paymentDueDay: number;
     nextMonthRepayment: number;
     monthAfterNextRepayment: number;
   }>,

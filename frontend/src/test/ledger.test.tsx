@@ -27,8 +27,8 @@ test('deletes a transaction from ledger list', async () => {
   render(<LedgerPage transactions={transactions} deleteTransactionImpl={deleteTransactionImpl} />);
 
   expect(screen.getByText('午饭')).toBeInTheDocument();
-  expect(screen.getByText('CNY ¥38.00')).toBeInTheDocument();
-  expect(screen.getByText('JPY 760')).toBeInTheDocument();
+  expect(screen.getByText('38元')).toBeInTheDocument();
+  expect(screen.getByText('760円')).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: '删除 午饭' }));
 

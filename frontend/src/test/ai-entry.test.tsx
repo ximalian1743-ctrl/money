@@ -69,8 +69,8 @@ test('parses a Chinese short sentence and shows draft preview', async () => {
 
   expect(await screen.findByText('解析结果')).toBeInTheDocument();
   expect(await screen.findByText('现金纸币')).toBeInTheDocument();
-  expect(await screen.findByText('CNY ¥38.00')).toBeInTheDocument();
-  expect(await screen.findByText('JPY 760')).toBeInTheDocument();
+  expect(await screen.findByText('38元')).toBeInTheDocument();
+  expect(await screen.findByText('760円')).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: '确认入账' }));
 

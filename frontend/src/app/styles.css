@@ -2,8 +2,8 @@
   font-family: 'Aptos', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
   color: #132220;
   background:
-    radial-gradient(circle at top left, rgba(255, 214, 153, 0.65), transparent 35%),
-    radial-gradient(circle at 90% 10%, rgba(150, 194, 189, 0.65), transparent 30%),
+    radial-gradient(circle at top left, rgba(255, 214, 153, 0.55), transparent 35%),
+    radial-gradient(circle at 90% 10%, rgba(150, 194, 189, 0.5), transparent 30%),
     linear-gradient(180deg, #f8f3e7 0%, #eef2ea 100%);
   line-height: 1.5;
   font-weight: 400;
@@ -11,13 +11,17 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+
   --ink: #132220;
   --muted: #61716f;
   --accent: #0d7a68;
+  --accent-light: rgba(13, 122, 104, 0.12);
   --danger: #b44f28;
-  --panel: rgba(255, 252, 245, 0.82);
+  --danger-light: rgba(180, 79, 40, 0.12);
+  --panel: rgba(255, 252, 245, 0.88);
   --panel-border: rgba(19, 34, 32, 0.08);
-  --shadow: 0 18px 45px rgba(43, 65, 61, 0.12);
+  --shadow: 0 12px 36px rgba(43, 65, 61, 0.1);
+  --shadow-sm: 0 4px 14px rgba(43, 65, 61, 0.08);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 }
@@ -60,10 +64,14 @@ a {
   min-height: 100vh;
 }
 
+/* ─── Shell & Layout ──────────────────────────────────────────────────── */
+
 .shell {
   min-height: 100vh;
   padding: calc(12px + var(--safe-top)) 14px calc(96px + var(--safe-bottom));
 }
+
+/* ─── Hero Header ─────────────────────────────────────────────────────── */
 
 .hero {
   position: relative;
@@ -107,14 +115,63 @@ a {
   color: rgba(255, 250, 240, 0.86);
 }
 
+/* ─── Content ─────────────────────────────────────────────────────────── */
+
 .content {
   margin-top: 18px;
 }
 
 .stack {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
+
+/* ─── Net Worth Hero Card ─────────────────────────────────────────────── */
+
+.summary-hero {
+  position: relative;
+  padding: 20px 22px;
+  border: 1px solid var(--panel-border);
+  border-radius: 24px;
+  background: linear-gradient(135deg, #0d7a68, #1a5c53);
+  box-shadow: var(--shadow);
+  color: #fffaf0;
+  overflow: hidden;
+}
+
+.summary-hero::after {
+  content: '';
+  position: absolute;
+  inset: auto -30px -40px auto;
+  width: 130px;
+  height: 130px;
+  border-radius: 999px;
+  background: rgba(255, 232, 199, 0.15);
+}
+
+.summary-hero__label {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
+  opacity: 0.75;
+  text-transform: uppercase;
+}
+
+.summary-hero__primary {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.summary-hero__sub {
+  margin: 4px 0 0;
+  font-size: 1rem;
+  opacity: 0.65;
+}
+
+/* ─── Summary Cards Grid ──────────────────────────────────────────────── */
 
 .card-grid {
   display: grid;
@@ -125,49 +182,45 @@ a {
 .summary-card,
 .panel {
   border: 1px solid var(--panel-border);
-  border-radius: 24px;
+  border-radius: 20px;
   background: var(--panel);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
   backdrop-filter: blur(18px);
 }
 
 .summary-card {
-  padding: 14px;
+  padding: 16px;
   animation: rise-in 320ms ease;
   min-width: 0;
 }
 
-.summary-card__label {
-  font-size: 0.85rem;
-}
-
 .summary-card--accent {
-  background: linear-gradient(135deg, rgba(13, 122, 104, 0.15), rgba(255, 252, 245, 0.9));
+  background: linear-gradient(140deg, rgba(13, 122, 104, 0.1), rgba(255, 252, 245, 0.92));
+  border-color: rgba(13, 122, 104, 0.18);
 }
 
 .summary-card--danger {
-  background: linear-gradient(135deg, rgba(180, 79, 40, 0.14), rgba(255, 252, 245, 0.9));
+  background: linear-gradient(140deg, rgba(180, 79, 40, 0.1), rgba(255, 252, 245, 0.92));
+  border-color: rgba(180, 79, 40, 0.16);
 }
 
 .summary-card__label {
-  margin: 0;
+  margin: 0 0 10px;
   color: var(--muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
 }
 
 .summary-card__value {
   display: block;
-  margin-top: 8px;
-  font-size: 1.05rem;
-  word-break: break-word;
+  font-weight: 400;
 }
+
+/* ─── Dual-Currency Amount Display ───────────────────────────────────── */
 
 .dual-amount {
   display: grid;
-  gap: 4px;
-}
-
-.dual-amount span {
-  display: block;
+  gap: 2px;
 }
 
 .dual-amount--end {
@@ -175,25 +228,52 @@ a {
   text-align: right;
 }
 
+.dual-amount__primary {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.summary-card--danger .dual-amount__primary {
+  color: var(--danger);
+}
+
+.summary-hero .dual-amount__primary {
+  color: inherit;
+}
+
+.dual-amount__secondary {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+/* ─── Panel ───────────────────────────────────────────────────────────── */
+
 .panel {
   padding: 16px;
 }
 
 .panel__header h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 .panel__header p {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: var(--muted);
+  font-size: 0.85rem;
 }
+
+/* ─── Account List ────────────────────────────────────────────────────── */
 
 .account-list {
   display: grid;
-  gap: 12px;
+  gap: 0;
   padding: 0;
-  margin: 18px 0 0;
+  margin: 12px 0 0;
   list-style: none;
 }
 
@@ -203,8 +283,7 @@ a {
   align-items: flex-start;
   gap: 12px;
   padding: 14px 0;
-  border-top: 1px solid rgba(19, 34, 32, 0.08);
-  flex-wrap: wrap;
+  border-top: 1px solid rgba(19, 34, 32, 0.07);
 }
 
 .account-list__item:first-child {
@@ -212,40 +291,166 @@ a {
   padding-top: 0;
 }
 
-.account-list__item p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 0.92rem;
+/* Credit card items get a subtle tinted background */
+.account-list__item--credit {
+  padding: 14px 12px;
+  margin: 4px -12px;
+  border-radius: 14px;
+  background: rgba(180, 79, 40, 0.04);
+  border: 1px solid rgba(180, 79, 40, 0.1);
+  flex-direction: column;
+  align-items: stretch;
 }
 
-.account-list__info {
+.account-list__item--credit:first-child {
+  padding-top: 14px;
+}
+
+.account-list__header {
   flex: 1;
   min-width: 0;
 }
 
-.account-list__actions {
-  display: grid;
+.account-list__title-row {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  margin-bottom: 4px;
+}
+
+.account-list__name {
+  font-size: 0.97rem;
+  font-weight: 600;
+}
+
+.account-list__sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* Badge: 信用卡 */
+.account-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(180, 79, 40, 0.12);
+  color: var(--danger);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.account-list__amount-col {
+  display: grid;
+  gap: 6px;
   justify-items: end;
   flex-shrink: 0;
 }
 
+.account-list__credit-body {
+  margin-top: 2px;
+}
+
+.account-list__credit-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.account-list__no-debt {
+  margin: 4px 0 6px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 .account-list__edit {
-  padding: 8px 14px;
-  min-height: 36px;
-  font-size: 0.82rem;
+  padding: 6px 14px;
+  min-height: 32px;
+  font-size: 0.8rem;
 }
 
 .account-list__editor {
   display: grid;
   gap: 10px;
-  margin-top: 10px;
-  padding: 12px;
+  margin-top: 12px;
+  padding: 14px;
   border: 1px solid var(--panel-border);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.65);
   width: 100%;
 }
+
+/* ─── Credit Usage Bar ────────────────────────────────────────────────── */
+
+.credit-usage {
+  margin: 6px 0 8px;
+}
+
+.credit-usage__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(19, 34, 32, 0.1);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.credit-usage__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 400ms ease;
+}
+
+.credit-usage__fill--high {
+  background: var(--danger);
+}
+
+.credit-usage__stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.credit-usage__stats strong {
+  color: var(--ink);
+}
+
+.credit-usage__available {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.credit-usage__available strong {
+  color: var(--accent);
+}
+
+/* ─── Credit Date Info ────────────────────────────────────────────────── */
+
+.credit-dates {
+  margin-top: 6px;
+}
+
+.credit-dates__row {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.credit-dates__repayment {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.credit-dates__amount {
+  color: var(--danger);
+}
+
+/* ─── Draft / AI Parse Card ───────────────────────────────────────────── */
 
 .draft-grid {
   display: grid;
@@ -266,6 +471,8 @@ a {
   color: var(--danger);
 }
 
+/* ─── Ledger List ─────────────────────────────────────────────────────── */
+
 .ledger-list {
   display: grid;
   gap: 12px;
@@ -279,7 +486,7 @@ a {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 0;
-  border-top: 1px solid rgba(19, 34, 32, 0.08);
+  border-top: 1px solid rgba(19, 34, 32, 0.07);
   align-items: flex-start;
 }
 
@@ -296,6 +503,7 @@ a {
 .ledger-list__item p {
   margin: 4px 0 0;
   color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .ledger-list__meta {
@@ -306,6 +514,8 @@ a {
   text-align: right;
 }
 
+/* ─── Forms ───────────────────────────────────────────────────────────── */
+
 .form-grid {
   display: grid;
   gap: 14px;
@@ -313,21 +523,21 @@ a {
 
 .field {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .field span {
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
 }
 
 .field input,
 .field select,
 .field textarea {
   width: 100%;
-  padding: 12px 14px;
+  padding: 11px 14px;
   border: 1px solid rgba(19, 34, 32, 0.12);
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.9);
   font-size: 16px;
 }
@@ -340,10 +550,10 @@ a {
 .button {
   border: none;
   border-radius: 999px;
-  padding: 12px 20px;
-  min-height: 44px;
-  font-size: 0.95rem;
-  background: linear-gradient(135deg, #0d7a68, #205f56);
+  padding: 11px 20px;
+  min-height: 42px;
+  font-size: 0.92rem;
+  background: linear-gradient(135deg, #0d7a68, #1a5c53);
   color: #fff;
   cursor: pointer;
   display: inline-flex;
@@ -353,28 +563,33 @@ a {
 }
 
 .button:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 .button--ghost {
-  background: rgba(19, 34, 32, 0.08);
+  background: rgba(19, 34, 32, 0.07);
   color: var(--ink);
 }
 
 .button:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
   transition: transform 80ms ease;
 }
+
+/* ─── Status Messages ─────────────────────────────────────────────────── */
 
 .status {
   margin: 0;
   color: var(--accent);
+  font-size: 0.9rem;
 }
 
 .status--warning {
   color: var(--danger);
 }
+
+/* ─── Accessibility ───────────────────────────────────────────────────── */
 
 .skip-link {
   position: absolute;
@@ -395,6 +610,8 @@ a {
   outline-offset: 2px;
 }
 
+/* ─── Error & Misc ────────────────────────────────────────────────────── */
+
 .error-message {
   margin: 12px 0 0;
   padding: 10px 12px;
@@ -409,7 +626,7 @@ a {
 .form-actions {
   display: flex;
   gap: 10px;
-  margin-top: 14px;
+  margin-top: 12px;
   flex-wrap: wrap;
 }
 
@@ -445,6 +662,8 @@ a {
   font-size: 0.88rem;
 }
 
+/* ─── Bottom Nav ──────────────────────────────────────────────────────── */
+
 .bottom-nav {
   position: fixed;
   left: 10px;
@@ -456,18 +675,18 @@ a {
   padding: 8px;
   border: 1px solid var(--panel-border);
   border-radius: 999px;
-  background: rgba(255, 251, 245, 0.92);
+  background: rgba(255, 251, 245, 0.94);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(20px);
   z-index: 50;
 }
 
 .bottom-nav__item {
-  padding: 10px 4px;
+  padding: 9px 4px;
   border-radius: 999px;
   text-align: center;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   min-height: 44px;
   display: flex;
   align-items: center;
@@ -476,14 +695,17 @@ a {
 }
 
 .bottom-nav__item--active {
-  background: rgba(13, 122, 104, 0.12);
+  background: rgba(13, 122, 104, 0.14);
   color: var(--accent);
+  font-weight: 600;
 }
+
+/* ─── Animations ──────────────────────────────────────────────────────── */
 
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
 
   to {
@@ -491,6 +713,8 @@ a {
     transform: translateY(0);
   }
 }
+
+/* ─── Desktop ─────────────────────────────────────────────────────────── */
 
 @media (min-width: 840px) {
   .shell {
@@ -500,7 +724,7 @@ a {
   }
 
   .card-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .bottom-nav {

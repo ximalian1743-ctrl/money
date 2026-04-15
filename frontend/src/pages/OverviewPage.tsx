@@ -1,66 +1,69 @@
 import { AccountBalanceList } from '../components/AccountBalanceList';
-import { DualCurrencyAmount } from '../components/DualCurrencyAmount';
+import { NativeDualCurrencyAmount } from '../components/DualCurrencyAmount';
 import { SummaryCard } from '../components/SummaryCard';
+import { formatCurrency } from '../lib/format';
 import { useAppData } from '../hooks/useAppData';
 
 export function OverviewPage() {
   const { accounts, summary, settings, error, reload } = useAppData();
+  const netJpy = summary.assetsInJpy - summary.totalLiabilitiesJpy;
 
   return (
     <section className="stack">
+      {/* Hero: Net Worth */}
+      <article className="summary-hero">
+        <p className="summary-hero__label">净资产</p>
+        <strong className="summary-hero__primary">
+          {formatCurrency(summary.actualBalanceCnyBase, 'CNY')}
+        </strong>
+        <p className="summary-hero__sub">{formatCurrency(netJpy, 'JPY')}</p>
+      </article>
+
+      {/* Asset breakdown */}
       <div className="card-grid">
-        <SummaryCard
-          label="总存款"
-          value={<DualCurrencyAmount cny={summary.assetsInCny} jpy={summary.assetsInJpy} />}
-          tone="accent"
-        />
-        <SummaryCard
-          label="总欠款"
-          value={
-            <DualCurrencyAmount
-              cny={summary.totalLiabilitiesCnyBase}
-              jpy={summary.totalLiabilitiesJpy}
-            />
-          }
-          tone="danger"
-        />
-        <SummaryCard
-          label="实际余额"
-          value={
-            <DualCurrencyAmount
-              cny={summary.actualBalanceCnyBase}
-              jpy={summary.assetsInJpy - summary.totalLiabilitiesJpy}
-            />
-          }
-        />
         <SummaryCard
           label="人民币资产"
           value={
-            <DualCurrencyAmount
-              cny={summary.cnyAssetTotal}
-              jpy={summary.cnyAssetTotal * settings.cnyToJpyRate}
+            <NativeDualCurrencyAmount
+              amount={summary.cnyAssetTotal}
+              currency="CNY"
+              rates={settings}
             />
           }
         />
         <SummaryCard
           label="日元资产"
           value={
-            <DualCurrencyAmount
-              cny={summary.jpyAssetTotal * settings.jpyToCnyRate}
-              jpy={summary.jpyAssetTotal}
+            <NativeDualCurrencyAmount
+              amount={summary.jpyAssetTotal}
+              currency="JPY"
+              rates={settings}
             />
           }
-        />
-        <SummaryCard
-          label="折算总额"
-          value={<DualCurrencyAmount cny={summary.assetsInCny} jpy={summary.assetsInJpy} />}
+          tone="accent"
         />
       </div>
 
+      {/* Credit card debt — shown only when non-zero */}
+      {summary.totalLiabilitiesJpy > 0 ? (
+        <SummaryCard
+          label="信用卡欠款"
+          value={
+            <NativeDualCurrencyAmount
+              amount={summary.totalLiabilitiesJpy}
+              currency="JPY"
+              rates={settings}
+            />
+          }
+          tone="danger"
+        />
+      ) : null}
+
+      {/* Account list */}
       <section className="panel">
         <div className="panel__header">
           <h2>账户余额</h2>
-          <p>PayPay 信用卡只计入欠款，不计入总存款。点击「编辑信息」可设置额度和还款计划。</p>
+          <p>点击账户可编辑初始余额或信用卡设置。</p>
         </div>
         <AccountBalanceList accounts={accounts} rates={settings} onAccountUpdated={reload} />
       </section>

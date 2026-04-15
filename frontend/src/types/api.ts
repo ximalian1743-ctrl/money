@@ -15,6 +15,7 @@ export interface AccountBalance {
   initialBalance: number;
   creditLimit: number;
   monthlyBillingDay?: number;
+  paymentDueDay?: number;
   nextMonthRepayment?: number;
   monthAfterNextRepayment?: number;
 }

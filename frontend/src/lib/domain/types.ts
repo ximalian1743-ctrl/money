@@ -21,6 +21,7 @@ export interface AccountRecord {
   createdAt: string;
   updatedAt: string;
   monthlyBillingDay?: number;
+  paymentDueDay?: number;
   nextMonthRepayment?: number;
   monthAfterNextRepayment?: number;
 }
@@ -34,6 +35,7 @@ export interface AccountBalance {
   initialBalance: number;
   creditLimit: number;
   monthlyBillingDay?: number;
+  paymentDueDay?: number;
   nextMonthRepayment?: number;
   monthAfterNextRepayment?: number;
 }

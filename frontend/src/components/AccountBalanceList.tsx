@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { updateAccountDetails, updateAccountInitialBalance } from '../lib/api';
 import { formatCurrency, type ExchangeRates } from '../lib/format';
 import { NativeDualCurrencyAmount } from './DualCurrencyAmount';
-import type { AccountBalance } from '../types/api';
+import type { AccountBalance, Currency } from '../types/api';
 
 interface AccountBalanceListProps {
   accounts: AccountBalance[];
@@ -16,8 +16,8 @@ interface AccountBalanceListProps {
       initialBalance: number;
       creditLimit: number;
       monthlyBillingDay: number;
+      paymentDueDay: number;
       nextMonthRepayment: number;
-      monthAfterNextRepayment: number;
     }>,
   ) => Promise<void>;
 }
@@ -26,18 +26,85 @@ interface EditDraft {
   initialBalance: string;
   creditLimit: string;
   monthlyBillingDay: string;
+  paymentDueDay: string;
   nextMonthRepayment: string;
-  monthAfterNextRepayment: string;
 }
 
 function makeDraft(account: AccountBalance): EditDraft {
   return {
     initialBalance: String(account.initialBalance),
     creditLimit: String(account.creditLimit ?? 0),
-    monthlyBillingDay: String(account.monthlyBillingDay ?? ''),
-    nextMonthRepayment: String(account.nextMonthRepayment ?? ''),
-    monthAfterNextRepayment: String(account.monthAfterNextRepayment ?? ''),
+    monthlyBillingDay: account.monthlyBillingDay ? String(account.monthlyBillingDay) : '',
+    paymentDueDay: account.paymentDueDay ? String(account.paymentDueDay) : '',
+    nextMonthRepayment: account.nextMonthRepayment ? String(account.nextMonthRepayment) : '',
   };
+}
+
+function CreditUsageBar({
+  balance,
+  limit,
+  currency,
+}: {
+  balance: number;
+  limit: number;
+  currency: Currency;
+}) {
+  if (limit <= 0) return null;
+  const usagePct = Math.min(Math.round((balance / limit) * 100), 100);
+  const available = limit - balance;
+  const isHigh = usagePct > 70;
+
+  return (
+    <div className="credit-usage">
+      <div className="credit-usage__bar">
+        <div
+          className={`credit-usage__fill${isHigh ? ' credit-usage__fill--high' : ''}`}
+          style={{ width: `${usagePct}%` }}
+        />
+      </div>
+      <div className="credit-usage__stats">
+        <span>
+          已用 <strong>{formatCurrency(balance, currency)}</strong>
+        </span>
+        <span>额度 {formatCurrency(limit, currency)}</span>
+      </div>
+      <p className="credit-usage__available">
+        可用 <strong>{formatCurrency(available, currency)}</strong>
+      </p>
+    </div>
+  );
+}
+
+function CreditDateInfo({
+  account,
+}: {
+  account: Pick<
+    AccountBalance,
+    'monthlyBillingDay' | 'paymentDueDay' | 'nextMonthRepayment' | 'currency'
+  >;
+}) {
+  const { monthlyBillingDay, paymentDueDay, nextMonthRepayment, currency } = account;
+  if (!monthlyBillingDay && !paymentDueDay && !nextMonthRepayment) return null;
+
+  return (
+    <div className="credit-dates">
+      {monthlyBillingDay || paymentDueDay ? (
+        <p className="credit-dates__row">
+          {monthlyBillingDay ? `账单日 每月${monthlyBillingDay}日` : null}
+          {monthlyBillingDay && paymentDueDay ? ' · ' : null}
+          {paymentDueDay ? `还款截止 次月${paymentDueDay}日` : null}
+        </p>
+      ) : null}
+      {nextMonthRepayment ? (
+        <p className="credit-dates__repayment">
+          下次应还{' '}
+          <strong className="credit-dates__amount">
+            {formatCurrency(nextMonthRepayment, currency)}
+          </strong>
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 export function AccountBalanceList({
@@ -52,8 +119,8 @@ export function AccountBalanceList({
     initialBalance: '',
     creditLimit: '',
     monthlyBillingDay: '',
+    paymentDueDay: '',
     nextMonthRepayment: '',
-    monthAfterNextRepayment: '',
   });
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -73,6 +140,15 @@ export function AccountBalanceList({
     setDraft((prev) => ({ ...prev, [key]: value }));
   }
 
+  function parseDayField(raw: string, label: string): number | undefined {
+    if (!raw) return undefined;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1 || n > 31) {
+      throw new Error(`${label}请填 1-31 之间的整数`);
+    }
+    return n;
+  }
+
   async function submitEdit(event: FormEvent<HTMLFormElement>, account: AccountBalance) {
     event.preventDefault();
     const parsedBalance = Number(draft.initialBalance);
@@ -86,24 +162,15 @@ export function AccountBalanceList({
     try {
       if (account.kind === 'liability') {
         const parsedLimit = Number(draft.creditLimit);
-        const parsedDay = draft.monthlyBillingDay ? Number(draft.monthlyBillingDay) : undefined;
+        const parsedBillingDay = parseDayField(draft.monthlyBillingDay, '账单日');
+        const parsedPaymentDay = parseDayField(draft.paymentDueDay, '还款截止日');
         const parsedNext = draft.nextMonthRepayment ? Number(draft.nextMonthRepayment) : undefined;
-        const parsedAfter = draft.monthAfterNextRepayment
-          ? Number(draft.monthAfterNextRepayment)
-          : undefined;
-        if (
-          parsedDay !== undefined &&
-          (!Number.isInteger(parsedDay) || parsedDay < 1 || parsedDay > 31)
-        ) {
-          setErrorMessage('还款日请填 1-31 之间的整数');
-          return;
-        }
         await updateAccountDetailsImpl(account.id, {
           initialBalance: parsedBalance,
           creditLimit: Number.isFinite(parsedLimit) ? parsedLimit : 0,
-          ...(parsedDay !== undefined ? { monthlyBillingDay: parsedDay } : {}),
+          ...(parsedBillingDay !== undefined ? { monthlyBillingDay: parsedBillingDay } : {}),
+          ...(parsedPaymentDay !== undefined ? { paymentDueDay: parsedPaymentDay } : {}),
           ...(parsedNext !== undefined ? { nextMonthRepayment: parsedNext } : {}),
-          ...(parsedAfter !== undefined ? { monthAfterNextRepayment: parsedAfter } : {}),
         });
       } else {
         await updateInitialBalanceImpl(account.id, parsedBalance);
@@ -125,46 +192,48 @@ export function AccountBalanceList({
         const isCredit = account.kind === 'liability';
 
         return (
-          <li key={account.id} className="account-list__item">
-            <div className="account-list__info">
-              <strong>{account.name}</strong>
-              <p>
-                {isCredit ? '欠款账户' : '资产账户'} · 初始{' '}
-                {formatCurrency(account.initialBalance, account.currency)}
-                {isCredit && account.creditLimit > 0
-                  ? ` · 额度 ${formatCurrency(account.creditLimit, account.currency)}`
-                  : null}
-              </p>
-              {isCredit &&
-              (account.monthlyBillingDay ||
-                account.nextMonthRepayment !== undefined ||
-                account.monthAfterNextRepayment !== undefined) ? (
-                <p>
-                  {account.monthlyBillingDay ? `还款日 每月${account.monthlyBillingDay}号` : null}
-                  {account.monthlyBillingDay &&
-                  (account.nextMonthRepayment !== undefined ||
-                    account.monthAfterNextRepayment !== undefined)
-                    ? ' · '
-                    : null}
-                  {account.nextMonthRepayment !== undefined
-                    ? `下月 ${formatCurrency(account.nextMonthRepayment, account.currency)}`
-                    : null}
-                  {account.nextMonthRepayment !== undefined &&
-                  account.monthAfterNextRepayment !== undefined
-                    ? ' / '
-                    : null}
-                  {account.monthAfterNextRepayment !== undefined
-                    ? `下下月 ${formatCurrency(account.monthAfterNextRepayment, account.currency)}`
-                    : null}
+          <li
+            key={account.id}
+            className={`account-list__item${isCredit ? ' account-list__item--credit' : ''}`}
+          >
+            <div className="account-list__header">
+              <div className="account-list__title-row">
+                <strong className="account-list__name">{account.name}</strong>
+                {isCredit ? <span className="account-badge">信用卡</span> : null}
+              </div>
+
+              {isCredit ? (
+                <div className="account-list__credit-body">
+                  {account.balance > 0 ? (
+                    <CreditUsageBar
+                      balance={account.balance}
+                      limit={account.creditLimit}
+                      currency={account.currency}
+                    />
+                  ) : (
+                    <p className="account-list__no-debt">
+                      暂无欠款
+                      {account.creditLimit > 0
+                        ? `（额度 ${formatCurrency(account.creditLimit, account.currency)}）`
+                        : null}
+                    </p>
+                  )}
+                  <CreditDateInfo account={account} />
+                </div>
+              ) : (
+                <p className="account-list__sub">
+                  {account.currency === 'JPY' ? '日元账户' : '人民币账户'} · 初始{' '}
+                  {formatCurrency(account.initialBalance, account.currency)}
                 </p>
-              ) : null}
+              )}
+
               {isEditing ? (
                 <form
                   className="account-list__editor"
                   onSubmit={(event) => void submitEdit(event, account)}
                 >
                   <label className="field">
-                    <span>初始金额 ({account.currency})</span>
+                    <span>初始余额（{account.currency}）</span>
                     <input
                       aria-label={`${account.name} 初始金额`}
                       type="number"
@@ -177,7 +246,7 @@ export function AccountBalanceList({
                   {isCredit ? (
                     <>
                       <label className="field">
-                        <span>每月额度 ({account.currency})</span>
+                        <span>信用额度（{account.currency}）</span>
                         <input
                           aria-label={`${account.name} 每月额度`}
                           type="number"
@@ -187,20 +256,33 @@ export function AccountBalanceList({
                         />
                       </label>
                       <label className="field">
-                        <span>每月还款日（1–31，留空表示未设置）</span>
+                        <span>账单日（每月第几日，留空未设置）</span>
                         <input
                           aria-label={`${account.name} 还款日`}
                           type="number"
                           min="1"
                           max="31"
                           step="1"
-                          placeholder="例如 15"
+                          placeholder="如 15"
                           value={draft.monthlyBillingDay}
                           onChange={(e) => setField('monthlyBillingDay', e.target.value)}
                         />
                       </label>
                       <label className="field">
-                        <span>下个月需还款 ({account.currency}，留空表示未设置)</span>
+                        <span>还款截止日（次月第几日，留空未设置）</span>
+                        <input
+                          aria-label={`${account.name} 还款截止日`}
+                          type="number"
+                          min="1"
+                          max="31"
+                          step="1"
+                          placeholder="如 10"
+                          value={draft.paymentDueDay}
+                          onChange={(e) => setField('paymentDueDay', e.target.value)}
+                        />
+                      </label>
+                      <label className="field">
+                        <span>下次应还金额（{account.currency}，留空未设置）</span>
                         <input
                           aria-label={`${account.name} 下月需还款`}
                           type="number"
@@ -208,17 +290,6 @@ export function AccountBalanceList({
                           placeholder="0"
                           value={draft.nextMonthRepayment}
                           onChange={(e) => setField('nextMonthRepayment', e.target.value)}
-                        />
-                      </label>
-                      <label className="field">
-                        <span>下下个月需还款 ({account.currency}，留空表示未设置)</span>
-                        <input
-                          aria-label={`${account.name} 下下月需还款`}
-                          type="number"
-                          step="0.01"
-                          placeholder="0"
-                          value={draft.monthAfterNextRepayment}
-                          onChange={(e) => setField('monthAfterNextRepayment', e.target.value)}
                         />
                       </label>
                     </>
@@ -244,23 +315,38 @@ export function AccountBalanceList({
                 </form>
               ) : null}
             </div>
-            <div className="account-list__actions">
-              <NativeDualCurrencyAmount
-                amount={account.balance}
-                currency={account.currency}
-                rates={rates}
-                align="end"
-              />
-              {!isEditing ? (
-                <button
-                  type="button"
-                  className="button button--ghost account-list__edit"
-                  onClick={() => startEdit(account)}
-                >
-                  {isCredit ? '编辑信息' : '编辑初始'}
-                </button>
-              ) : null}
-            </div>
+
+            {!isCredit ? (
+              <div className="account-list__amount-col">
+                <NativeDualCurrencyAmount
+                  amount={account.balance}
+                  currency={account.currency}
+                  rates={rates}
+                  align="end"
+                />
+                {!isEditing ? (
+                  <button
+                    type="button"
+                    className="button button--ghost account-list__edit"
+                    onClick={() => startEdit(account)}
+                  >
+                    编辑初始
+                  </button>
+                ) : null}
+              </div>
+            ) : (
+              <div className="account-list__credit-actions">
+                {!isEditing ? (
+                  <button
+                    type="button"
+                    className="button button--ghost account-list__edit"
+                    onClick={() => startEdit(account)}
+                  >
+                    编辑信息
+                  </button>
+                ) : null}
+              </div>
+            )}
           </li>
         );
       })}
