@@ -71,6 +71,17 @@ export function resolveTransaction(
         accountEffects: [effectFor(target, input.amount)],
       };
     }
+    case 'credit_transfer': {
+      // Credit card pays for a top-up to an asset account (e.g. transit card).
+      // Liability (credit card) debt increases; asset (transit/wallet) balance increases.
+      const source = requireAccount(accountsByName, input.sourceAccountName, ['liability']);
+      const target = requireAccount(accountsByName, input.targetAccountName, ['asset']);
+      return {
+        sourceAccountId: source.id,
+        targetAccountId: target.id,
+        accountEffects: [effectFor(source, input.amount), effectFor(target, input.amount)],
+      };
+    }
     case 'credit_repayment': {
       const source = requireAccount(accountsByName, input.sourceAccountName, ['asset']);
       const target = requireAccount(accountsByName, input.targetAccountName, ['liability']);

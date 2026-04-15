@@ -25,10 +25,33 @@ export function ParsedDraftCard({ draft, rates, onConfirm }: ParsedDraftCardProp
           <span className="draft-grid__label">金额</span>
           <NativeDualCurrencyAmount amount={draft.amount} currency={draft.currency} rates={rates} />
         </div>
-        <div>
-          <span className="draft-grid__label">账户</span>
-          <strong>{draft.accountName || draft.targetAccountName || '待确认'}</strong>
-        </div>
+        {draft.type === 'transfer' ||
+        draft.type === 'credit_transfer' ||
+        draft.type === 'credit_repayment' ? (
+          <>
+            <div>
+              <span className="draft-grid__label">
+                {draft.type === 'credit_transfer' ? '信用账户（付款）' : '转出账户'}
+              </span>
+              <strong>{draft.accountName || '待确认'}</strong>
+            </div>
+            <div>
+              <span className="draft-grid__label">
+                {draft.type === 'credit_transfer'
+                  ? '充值账户（到账）'
+                  : draft.type === 'credit_repayment'
+                    ? '还款目标'
+                    : '转入账户'}
+              </span>
+              <strong>{draft.targetAccountName || '待确认'}</strong>
+            </div>
+          </>
+        ) : (
+          <div>
+            <span className="draft-grid__label">账户</span>
+            <strong>{draft.accountName || draft.targetAccountName || '待确认'}</strong>
+          </div>
+        )}
         <div>
           <span className="draft-grid__label">时间</span>
           <strong>{formatDateTime(draft.occurredAt)}</strong>

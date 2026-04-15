@@ -52,15 +52,25 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
   );
 
   useEffect(() => {
-    if (!sourceAccountName && assetAccounts[0]) {
-      setSourceAccountName(assetAccounts[0].name);
-    }
-    if (
-      !targetAccountName &&
-      liabilityAccounts[0] &&
-      (type === 'credit_spending' || type === 'credit_repayment')
-    ) {
-      setTargetAccountName(liabilityAccounts[0].name);
+    if (type === 'credit_transfer') {
+      // source must be a liability account
+      if (!sourceAccountName && liabilityAccounts[0]) {
+        setSourceAccountName(liabilityAccounts[0].name);
+      }
+      if (!targetAccountName && assetAccounts[0]) {
+        setTargetAccountName(assetAccounts[0].name);
+      }
+    } else {
+      if (!sourceAccountName && assetAccounts[0]) {
+        setSourceAccountName(assetAccounts[0].name);
+      }
+      if (
+        !targetAccountName &&
+        liabilityAccounts[0] &&
+        (type === 'credit_spending' || type === 'credit_repayment')
+      ) {
+        setTargetAccountName(liabilityAccounts[0].name);
+      }
     }
   }, [assetAccounts, liabilityAccounts, sourceAccountName, targetAccountName, type]);
 
@@ -100,6 +110,11 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
       payload.targetAccountName = targetAccountName || getDefaultLiabilityAccount(accounts);
     }
 
+    if (type === 'credit_transfer') {
+      payload.sourceAccountName = sourceAccountName || getDefaultLiabilityAccount(accounts);
+      payload.targetAccountName = targetAccountName || getDefaultSourceAccount(accounts);
+    }
+
     await onSubmit(payload);
   }
 
@@ -122,6 +137,11 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
               setTargetAccountName(getDefaultLiabilityAccount(accounts));
               setCurrency('JPY');
             }
+            if (nextType === 'credit_transfer') {
+              setSourceAccountName(getDefaultLiabilityAccount(accounts));
+              setTargetAccountName(getDefaultSourceAccount(accounts));
+              setCurrency('JPY');
+            }
           }}
         >
           <option value="expense">支出</option>
@@ -129,6 +149,7 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
           <option value="transfer">转账</option>
           <option value="credit_spending">信用消费</option>
           <option value="credit_repayment">信用还款</option>
+          <option value="credit_transfer">信用充值（信用卡→资产账户）</option>
         </select>
       </label>
 
@@ -161,13 +182,13 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
 
       {type !== 'income' && type !== 'credit_spending' ? (
         <label className="field">
-          <span>支付账户</span>
+          <span>{type === 'credit_transfer' ? '信用账户（付款）' : '支付账户'}</span>
           <select
-            aria-label="支付账户"
+            aria-label={type === 'credit_transfer' ? '信用账户' : '支付账户'}
             value={sourceAccountName}
             onChange={(event) => setSourceAccountName(event.target.value)}
           >
-            {assetAccounts.map((account) => (
+            {(type === 'credit_transfer' ? liabilityAccounts : assetAccounts).map((account) => (
               <option key={account.id} value={account.name}>
                 {account.name}
               </option>
@@ -179,11 +200,23 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
       {type !== 'expense' ? (
         <label className="field">
           <span>
-            {type === 'income' ? '入账账户' : type === 'credit_spending' ? '信用账户' : '目标账户'}
+            {type === 'income'
+              ? '入账账户'
+              : type === 'credit_spending'
+                ? '信用账户'
+                : type === 'credit_transfer'
+                  ? '充值账户（到账）'
+                  : '目标账户'}
           </span>
           <select
             aria-label={
-              type === 'income' ? '入账账户' : type === 'credit_spending' ? '信用账户' : '目标账户'
+              type === 'income'
+                ? '入账账户'
+                : type === 'credit_spending'
+                  ? '信用账户'
+                  : type === 'credit_transfer'
+                    ? '充值账户'
+                    : '目标账户'
             }
             value={targetAccountName}
             onChange={(event) => setTargetAccountName(event.target.value)}

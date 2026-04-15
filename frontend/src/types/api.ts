@@ -4,7 +4,8 @@ export type TransactionType =
   | 'income'
   | 'transfer'
   | 'credit_spending'
-  | 'credit_repayment';
+  | 'credit_repayment'
+  | 'credit_transfer';
 
 export interface AccountBalance {
   id: number;

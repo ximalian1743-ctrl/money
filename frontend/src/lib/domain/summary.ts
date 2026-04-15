@@ -45,6 +45,11 @@ function applyTransaction(
     case 'credit_spending':
       adjust(transaction.targetAccountId, transaction.amount);
       break;
+    case 'credit_transfer':
+      // Credit card debt increases, target asset (transit card, wallet) increases.
+      adjust(transaction.sourceAccountId, transaction.amount);
+      adjust(transaction.targetAccountId, transaction.amount);
+      break;
     case 'credit_repayment':
       adjust(transaction.sourceAccountId, -transaction.amount);
       adjust(transaction.targetAccountId, -transaction.amount);

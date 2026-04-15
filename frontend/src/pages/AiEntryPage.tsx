@@ -75,11 +75,14 @@ function mapDraftToTransaction(draft: ParsedDraft): CreateTransactionInput {
     amount: draft.amount,
     currency: draft.currency,
     sourceAccountName:
-      draft.type === 'expense' || draft.type === 'transfer' || draft.type === 'credit_repayment'
+      draft.type === 'expense' ||
+      draft.type === 'transfer' ||
+      draft.type === 'credit_repayment' ||
+      draft.type === 'credit_transfer'
         ? draft.accountName
         : undefined,
     targetAccountName:
-      draft.type === 'income' || draft.type === 'transfer'
+      draft.type === 'income' || draft.type === 'transfer' || draft.type === 'credit_transfer'
         ? draft.targetAccountName
         : draft.type === 'credit_spending' || draft.type === 'credit_repayment'
           ? draft.targetAccountName || draft.accountName

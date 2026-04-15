@@ -3,7 +3,14 @@ import { z } from 'zod';
 import type { AccountRecord, ParsedTransactionDraft } from './types';
 
 const draftSchema = z.object({
-  type: z.enum(['expense', 'income', 'transfer', 'credit_spending', 'credit_repayment']),
+  type: z.enum([
+    'expense',
+    'income',
+    'transfer',
+    'credit_spending',
+    'credit_repayment',
+    'credit_transfer',
+  ]),
   title: z.string().trim().min(1),
   amount: z.coerce.number().positive(),
   currency: z.enum(['CNY', 'JPY']),

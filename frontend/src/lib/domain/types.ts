@@ -6,7 +6,8 @@ export type TransactionType =
   | 'income'
   | 'transfer'
   | 'credit_spending'
-  | 'credit_repayment';
+  | 'credit_repayment'
+  | 'credit_transfer';
 export type TransactionOrigin = 'manual' | 'ai';
 
 export interface AccountRecord {
