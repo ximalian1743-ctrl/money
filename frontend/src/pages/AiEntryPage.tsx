@@ -117,13 +117,30 @@ export function AiEntryPage({
   async function handleConfirmOne(index: number, input: CreateTransactionInput) {
     await createTransactionImpl(input);
     await appData.reload();
-    setDrafts((prev) => prev.filter((_, i) => i !== index));
+    setDrafts((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      // If all drafts saved/discarded, reset input state for next entry
+      if (next.length === 0) {
+        setInputText('');
+        const nowLocal = toDatetimeLocalValue();
+        setFallbackOccurredAtLocal(nowLocal);
+        setReceiptPreview(null);
+        persist({ inputText: '', fallbackOccurredAtLocal: nowLocal });
+      }
+      return next;
+    });
     setSavedCount((c) => c + 1);
     setMessage(`已保存 ${savedCount + 1} 笔`);
   }
 
   function handleDiscardOne(index: number) {
-    setDrafts((prev) => prev.filter((_, i) => i !== index));
+    setDrafts((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length === 0) {
+        setReceiptPreview(null);
+      }
+      return next;
+    });
   }
 
   return (

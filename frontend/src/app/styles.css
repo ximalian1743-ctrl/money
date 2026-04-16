@@ -277,33 +277,58 @@ a {
   list-style: none;
 }
 
-.account-list__item {
+.account-list__item--row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  padding: 14px 0;
+  padding: 12px 8px;
+  margin: 0 -8px;
   border-top: 1px solid rgba(19, 34, 32, 0.07);
+  border-radius: 10px;
 }
 
-.account-list__item:first-child {
+.account-list__item--row:first-child {
   border-top: none;
-  padding-top: 0;
 }
 
-/* Credit card items get a subtle tinted background */
-.account-list__item--credit {
-  padding: 14px 12px;
-  margin: 4px -12px;
-  border-radius: 14px;
-  background: rgba(180, 79, 40, 0.04);
-  border: 1px solid rgba(180, 79, 40, 0.1);
-  flex-direction: column;
-  align-items: stretch;
+.account-list__item--clickable {
+  cursor: pointer;
+  transition: background 150ms ease;
 }
 
-.account-list__item--credit:first-child {
-  padding-top: 14px;
+.account-list__item--clickable:hover {
+  background: rgba(13, 122, 104, 0.06);
+}
+
+.account-list__item--clickable:active {
+  background: rgba(13, 122, 104, 0.1);
+}
+
+.account-list__row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.account-list__row-balance {
+  flex-shrink: 0;
+}
+
+.account-list__no-debt-compact {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* Credit card row gets subtle tint */
+.account-list__item--credit.account-list__item--row {
+  background: rgba(180, 79, 40, 0.03);
+}
+
+.account-list__item--credit.account-list__item--row:hover {
+  background: rgba(180, 79, 40, 0.08);
 }
 
 .account-list__header {
@@ -1404,6 +1429,70 @@ a {
   background: rgba(255, 255, 255, 0.9);
   font: inherit;
   font-size: 0.88rem;
+}
+
+/* ─── Wallet Detail Modal ────────────────────────────────────────────── */
+
+.wallet-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.wallet-modal__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.wallet-modal__title-row .modal-title {
+  margin: 0;
+}
+
+.wallet-modal__balance {
+  flex-shrink: 0;
+}
+
+.wallet-modal__section {
+  margin-top: 16px;
+}
+
+.wallet-modal__section-title {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.wallet-modal__current {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(19, 34, 32, 0.04);
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.wallet-modal__current strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.wallet-modal__delta {
+  margin: 4px 0 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(13, 122, 104, 0.06);
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 /* ─── Bottom Nav 6 items ─────────────────────────────────────────────── */

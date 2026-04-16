@@ -4,33 +4,14 @@ import { createTransaction } from '../lib/api';
 import { AccountBalanceList } from '../components/AccountBalanceList';
 import { NativeDualCurrencyAmount } from '../components/DualCurrencyAmount';
 import { SummaryCard } from '../components/SummaryCard';
-import { formatCurrency, formatDateTime } from '../lib/format';
+import { QuickEntryModal, type QuickEntryTemplate } from '../components/QuickEntryModal';
+import { WalletDetailModal } from '../components/WalletDetailModal';
+import { formatCurrency } from '../lib/format';
 import { useAppData } from '../hooks/useAppData';
-import type { CreateTransactionInput, TransactionRecord, TransactionType } from '../types/api';
+import type { AccountBalance, CreateTransactionInput, TransactionRecord } from '../types/api';
 
-function getDirectionSign(type: TransactionType): { sign: string; className: string } {
-  switch (type) {
-    case 'income':
-      return { sign: '+', className: 'ledger-amount--income' };
-    case 'expense':
-    case 'credit_spending':
-      return { sign: '-', className: 'ledger-amount--expense' };
-    default:
-      return { sign: '↔', className: 'ledger-amount--transfer' };
-  }
-}
-
-interface QuickTemplate {
-  title: string;
-  type: TransactionType;
-  category: string;
-  accountName: string;
-  currency: 'CNY' | 'JPY';
-  count: number;
-}
-
-function computeQuickTemplates(transactions: TransactionRecord[]): QuickTemplate[] {
-  const map = new Map<string, QuickTemplate>();
+function computeQuickTemplates(transactions: TransactionRecord[]): QuickEntryTemplate[] {
+  const map = new Map<string, { template: QuickEntryTemplate; count: number }>();
   for (const t of transactions) {
     if (t.type !== 'expense' && t.type !== 'credit_spending') continue;
     const key = `${t.title}|${t.type}|${t.sourceAccountName || t.targetAccountName}`;
@@ -39,11 +20,13 @@ function computeQuickTemplates(transactions: TransactionRecord[]): QuickTemplate
       existing.count += 1;
     } else {
       map.set(key, {
-        title: t.title,
-        type: t.type,
-        category: t.category,
-        accountName: t.sourceAccountName || t.targetAccountName,
-        currency: t.currency,
+        template: {
+          title: t.title,
+          type: t.type,
+          category: t.category,
+          accountName: t.sourceAccountName || t.targetAccountName,
+          currency: t.currency,
+        },
         count: 1,
       });
     }
@@ -51,65 +34,37 @@ function computeQuickTemplates(transactions: TransactionRecord[]): QuickTemplate
   return Array.from(map.values())
     .filter((t) => t.count >= 2)
     .sort((a, b) => b.count - a.count)
-    .slice(0, 6);
+    .slice(0, 6)
+    .map((t) => t.template);
 }
 
 export function OverviewPage() {
   const { accounts, summary, settings, transactions, error, reload } = useAppData();
   const netJpy = summary.assetsInJpy - summary.totalLiabilitiesJpy;
-  const recentTransactions = transactions.slice(0, 5);
-
   const quickTemplates = useMemo(() => computeQuickTemplates(transactions), [transactions]);
 
-  const [walletDetail, setWalletDetail] = useState<{
-    name: string;
-    items: TransactionRecord[];
-  } | null>(null);
-  const [quickMessage, setQuickMessage] = useState('');
+  const [activeWallet, setActiveWallet] = useState<AccountBalance | null>(null);
+  const [activeQuickTpl, setActiveQuickTpl] = useState<QuickEntryTemplate | null>(null);
+  const [message, setMessage] = useState('');
 
-  function handleAccountClick(accountName: string) {
-    const related = transactions
-      .filter((t) => t.sourceAccountName === accountName || t.targetAccountName === accountName)
-      .slice(0, 10);
-    setWalletDetail({ name: accountName, items: related });
+  function openWallet(accountName: string) {
+    const acc = accounts.find((a) => a.name === accountName);
+    if (acc) setActiveWallet(acc);
   }
 
-  async function handleQuickEntry(template: QuickTemplate) {
-    const input: CreateTransactionInput = {
-      type: template.type,
-      title: template.title,
-      amount: 0,
-      currency: template.currency,
-      category: template.category,
-      occurredAt: new Date().toISOString(),
-      origin: 'manual',
-    };
-    if (template.type === 'expense') {
-      input.sourceAccountName = template.accountName;
-    } else if (template.type === 'credit_spending') {
-      input.targetAccountName = template.accountName;
-    }
-
-    // Quick entry prompts for amount
-    const amountStr = window.prompt(
-      `${template.title} — 输入金额（${template.currency === 'JPY' ? '円' : '元'}）`,
+  const walletTransactions = useMemo(() => {
+    if (!activeWallet) return [];
+    return transactions.filter(
+      (t) => t.sourceAccountName === activeWallet.name || t.targetAccountName === activeWallet.name,
     );
-    if (!amountStr) return;
-    const amount = Number(amountStr);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setQuickMessage('金额无效');
-      return;
-    }
-    input.amount = amount;
+  }, [activeWallet, transactions]);
 
-    try {
-      await createTransaction(input);
-      await reload();
-      setQuickMessage(`已记录: ${template.title} ${formatCurrency(amount, template.currency)}`);
-      setTimeout(() => setQuickMessage(''), 3000);
-    } catch (err) {
-      setQuickMessage(err instanceof Error ? err.message : '记录失败');
-    }
+  async function handleQuickSubmit(input: CreateTransactionInput) {
+    await createTransaction(input);
+    await reload();
+    setActiveQuickTpl(null);
+    setMessage(`已记录: ${input.title} ${formatCurrency(input.amount, input.currency)}`);
+    setTimeout(() => setMessage(''), 3000);
   }
 
   return (
@@ -168,7 +123,7 @@ export function OverviewPage() {
         <section className="panel">
           <div className="panel__header">
             <h2>快捷记账</h2>
-            <p>根据历史高频交易生成，点击后输入金额即可。</p>
+            <p>点击高频模板，输入金额即可一键记账。</p>
           </div>
           <div className="quick-entry-grid">
             {quickTemplates.map((t) => (
@@ -176,7 +131,7 @@ export function OverviewPage() {
                 key={`${t.title}-${t.accountName}`}
                 type="button"
                 className="quick-entry-btn"
-                onClick={() => void handleQuickEntry(t)}
+                onClick={() => setActiveQuickTpl(t)}
               >
                 <span className="quick-entry-btn__title">{t.title}</span>
                 <span className="quick-entry-btn__sub">
@@ -185,89 +140,39 @@ export function OverviewPage() {
               </button>
             ))}
           </div>
-          {quickMessage ? <p className="status">{quickMessage}</p> : null}
+          {message ? <p className="status">{message}</p> : null}
         </section>
       ) : null}
 
-      {/* Account list */}
+      {/* Account list — compact */}
       <section className="panel">
         <div className="panel__header">
           <h2>账户余额</h2>
-          <p>点击账户名查看最近动账，点击编辑按钮修改设置。</p>
+          <p>点击账户查看动账、调整余额或编辑卡片信息。</p>
         </div>
-        <AccountBalanceList
-          accounts={accounts}
-          rates={settings}
-          onAccountUpdated={reload}
-          onAccountClick={handleAccountClick}
-        />
+        <AccountBalanceList accounts={accounts} rates={settings} onAccountClick={openWallet} />
       </section>
-
-      {/* Recent transactions */}
-      {recentTransactions.length > 0 ? (
-        <section className="panel">
-          <div className="panel__header">
-            <h2>最近动账</h2>
-          </div>
-          <ul className="recent-tx-list">
-            {recentTransactions.map((item) => {
-              const dir = getDirectionSign(item.type);
-              return (
-                <li key={item.id} className="recent-tx-item">
-                  <div className="recent-tx-item__left">
-                    <strong>{item.title}</strong>
-                    <span className="recent-tx-item__time">{formatDateTime(item.occurredAt)}</span>
-                  </div>
-                  <span className={`recent-tx-item__amount ${dir.className}`}>
-                    {dir.sign}
-                    {formatCurrency(item.amount, item.currency)}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ) : null}
 
       {error ? <p className="status status--warning">当前展示的是离线占位数据：{error}</p> : null}
 
       {/* Wallet detail modal */}
-      {walletDetail ? (
-        <div className="modal-overlay" onClick={() => setWalletDetail(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">{walletDetail.name} — 最近动账</h3>
-            {walletDetail.items.length === 0 ? (
-              <p className="modal-confirm-text">暂无相关交易记录</p>
-            ) : (
-              <ul className="recent-tx-list">
-                {walletDetail.items.map((item) => {
-                  const dir = getDirectionSign(item.type);
-                  return (
-                    <li key={item.id} className="recent-tx-item">
-                      <div className="recent-tx-item__left">
-                        <strong>{item.title}</strong>
-                        <span className="recent-tx-item__time">
-                          {formatDateTime(item.occurredAt)}
-                        </span>
-                      </div>
-                      <span className={`recent-tx-item__amount ${dir.className}`}>
-                        {dir.sign}
-                        {formatCurrency(item.amount, item.currency)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            <button
-              type="button"
-              className="button modal-close-btn"
-              onClick={() => setWalletDetail(null)}
-            >
-              关闭
-            </button>
-          </div>
-        </div>
+      {activeWallet ? (
+        <WalletDetailModal
+          account={activeWallet}
+          recentTransactions={walletTransactions}
+          rates={settings}
+          onClose={() => setActiveWallet(null)}
+          onRefresh={reload}
+        />
+      ) : null}
+
+      {/* Quick entry modal */}
+      {activeQuickTpl ? (
+        <QuickEntryModal
+          template={activeQuickTpl}
+          onClose={() => setActiveQuickTpl(null)}
+          onSubmit={handleQuickSubmit}
+        />
       ) : null}
     </section>
   );

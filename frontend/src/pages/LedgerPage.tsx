@@ -146,7 +146,7 @@ export function LedgerPage({
   const [search, setSearch] = useState('');
   const [detailItem, setDetailItem] = useState<TransactionRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<TransactionRecord | null>(null);
-  const [editItem, setEditItem] = useState<TransactionRecord | null>(null);
+  const [detailMode, setDetailMode] = useState<'view' | 'edit'>('view');
 
   const currentTransactions = localTransactions ?? appData.transactions;
   const filtered = currentTransactions
@@ -278,29 +278,6 @@ export function LedgerPage({
                             rates={appData.settings}
                             align="end"
                           />
-                          <div className="ledger-list__actions">
-                            <button
-                              type="button"
-                              className="button button--ghost ledger-action-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditItem(item);
-                              }}
-                            >
-                              编辑
-                            </button>
-                            <button
-                              type="button"
-                              className="button button--ghost ledger-action-btn"
-                              aria-label={`删除 ${item.title}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteConfirm(item);
-                              }}
-                            >
-                              删除
-                            </button>
-                          </div>
                         </div>
                       </li>
                     );
@@ -314,102 +291,111 @@ export function LedgerPage({
         {message ? <p className="status">{message}</p> : null}
       </section>
 
-      {/* Detail Modal */}
+      {/* Detail / Edit Modal */}
       {detailItem ? (
-        <div className="modal-overlay" onClick={() => setDetailItem(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">{detailItem.title}</h3>
-            <div className="modal-detail-grid">
-              <div className="modal-detail-row">
-                <span className="modal-detail-label">类型</span>
-                <span>{getDirectionInfo(detailItem.type).label}</span>
-              </div>
-              <div className="modal-detail-row">
-                <span className="modal-detail-label">金额</span>
-                <span className={getDirectionInfo(detailItem.type).className}>
-                  {getDirectionInfo(detailItem.type).sign}
-                  {formatCurrency(detailItem.amount, detailItem.currency)}
-                </span>
-              </div>
-              {detailItem.category ? (
+        detailMode === 'edit' ? (
+          <EditTransactionModal
+            item={detailItem}
+            accounts={appData.accounts}
+            onSave={async () => {
+              setDetailItem(null);
+              setDetailMode('view');
+              if (!transactions) await appData.reload();
+              setLocalTransactions(null);
+              setMessage('修改已保存');
+            }}
+            onClose={() => setDetailMode('view')}
+          />
+        ) : (
+          <div
+            className="modal-overlay"
+            onClick={() => {
+              setDetailItem(null);
+              setDetailMode('view');
+            }}
+          >
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <h3 className="modal-title">{detailItem.title}</h3>
+              <div className="modal-detail-grid">
                 <div className="modal-detail-row">
-                  <span className="modal-detail-label">类别</span>
-                  <span
-                    className="ledger-category-badge"
-                    style={{
-                      backgroundColor: getCategoryColor(detailItem.category) + '20',
-                      color: getCategoryColor(detailItem.category),
-                    }}
-                  >
-                    {detailItem.category}
+                  <span className="modal-detail-label">类型</span>
+                  <span>{getDirectionInfo(detailItem.type).label}</span>
+                </div>
+                <div className="modal-detail-row">
+                  <span className="modal-detail-label">金额</span>
+                  <span className={getDirectionInfo(detailItem.type).className}>
+                    {getDirectionInfo(detailItem.type).sign}
+                    {formatCurrency(detailItem.amount, detailItem.currency)}
                   </span>
                 </div>
-              ) : null}
-              <div className="modal-detail-row">
-                <span className="modal-detail-label">时间</span>
-                <span>{formatDateTime(detailItem.occurredAt)}</span>
+                {detailItem.category ? (
+                  <div className="modal-detail-row">
+                    <span className="modal-detail-label">类别</span>
+                    <span
+                      className="ledger-category-badge"
+                      style={{
+                        backgroundColor: getCategoryColor(detailItem.category) + '20',
+                        color: getCategoryColor(detailItem.category),
+                      }}
+                    >
+                      {detailItem.category}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="modal-detail-row">
+                  <span className="modal-detail-label">时间</span>
+                  <span>{formatDateTime(detailItem.occurredAt)}</span>
+                </div>
+                {detailItem.sourceAccountName ? (
+                  <div className="modal-detail-row">
+                    <span className="modal-detail-label">来源账户</span>
+                    <span>{detailItem.sourceAccountName}</span>
+                  </div>
+                ) : null}
+                {detailItem.targetAccountName ? (
+                  <div className="modal-detail-row">
+                    <span className="modal-detail-label">目标账户</span>
+                    <span>{detailItem.targetAccountName}</span>
+                  </div>
+                ) : null}
+                {detailItem.note ? (
+                  <div className="modal-detail-row">
+                    <span className="modal-detail-label">备注</span>
+                    <span>{detailItem.note}</span>
+                  </div>
+                ) : null}
+                {detailItem.origin === 'ai' && detailItem.aiInputText ? (
+                  <div className="modal-detail-section">
+                    <span className="modal-detail-label">AI 原始输入</span>
+                    <p className="modal-ai-input">{detailItem.aiInputText}</p>
+                  </div>
+                ) : null}
               </div>
-              {detailItem.sourceAccountName ? (
-                <div className="modal-detail-row">
-                  <span className="modal-detail-label">来源账户</span>
-                  <span>{detailItem.sourceAccountName}</span>
-                </div>
-              ) : null}
-              {detailItem.targetAccountName ? (
-                <div className="modal-detail-row">
-                  <span className="modal-detail-label">目标账户</span>
-                  <span>{detailItem.targetAccountName}</span>
-                </div>
-              ) : null}
-              {detailItem.note ? (
-                <div className="modal-detail-row">
-                  <span className="modal-detail-label">备注</span>
-                  <span>{detailItem.note}</span>
-                </div>
-              ) : null}
-              {detailItem.origin === 'ai' && detailItem.aiInputText ? (
-                <div className="modal-detail-section">
-                  <span className="modal-detail-label">AI 原始输入</span>
-                  <p className="modal-ai-input">{detailItem.aiInputText}</p>
-                </div>
-              ) : null}
-            </div>
-            <div className="form-actions" style={{ marginTop: 16 }}>
-              <button
-                type="button"
-                className="button"
-                onClick={() => {
-                  setEditItem(detailItem);
-                  setDetailItem(null);
-                }}
-              >
-                编辑此条
-              </button>
-              <button
-                type="button"
-                className="button button--ghost"
-                onClick={() => setDetailItem(null)}
-              >
-                关闭
-              </button>
+              <div className="form-actions" style={{ marginTop: 16 }}>
+                <button type="button" className="button" onClick={() => setDetailMode('edit')}>
+                  编辑
+                </button>
+                <button
+                  type="button"
+                  className="button button--danger"
+                  onClick={() => setDeleteConfirm(detailItem)}
+                >
+                  删除
+                </button>
+                <button
+                  type="button"
+                  className="button button--ghost"
+                  onClick={() => {
+                    setDetailItem(null);
+                    setDetailMode('view');
+                  }}
+                >
+                  关闭
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      ) : null}
-
-      {/* Edit Modal */}
-      {editItem ? (
-        <EditTransactionModal
-          item={editItem}
-          accounts={appData.accounts}
-          onSave={async () => {
-            setEditItem(null);
-            if (!transactions) await appData.reload();
-            setLocalTransactions(null);
-            setMessage('修改已保存');
-          }}
-          onClose={() => setEditItem(null)}
-        />
+        )
       ) : null}
 
       {/* Delete Confirmation Modal */}
@@ -424,17 +410,21 @@ export function LedgerPage({
             <div className="modal-actions">
               <button
                 type="button"
-                className="button button--danger"
-                onClick={() => void handleDelete(deleteConfirm.id)}
-              >
-                确认删除
-              </button>
-              <button
-                type="button"
                 className="button button--ghost"
                 onClick={() => setDeleteConfirm(null)}
               >
                 取消
+              </button>
+              <button
+                type="button"
+                className="button button--danger"
+                onClick={() => {
+                  void handleDelete(deleteConfirm.id);
+                  setDetailItem(null);
+                  setDetailMode('view');
+                }}
+              >
+                确认删除
               </button>
             </div>
           </div>

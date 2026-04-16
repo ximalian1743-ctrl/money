@@ -22,7 +22,7 @@ const transactions: TransactionRecord[] = [
   },
 ];
 
-test('deletes a transaction from ledger list', async () => {
+test('deletes a transaction via detail modal', async () => {
   const user = userEvent.setup();
   const deleteTransactionImpl = vi.fn().mockResolvedValue(undefined);
 
@@ -32,7 +32,11 @@ test('deletes a transaction from ledger list', async () => {
   expect(screen.getByText('38元')).toBeInTheDocument();
   expect(screen.getByText('760円')).toBeInTheDocument();
 
-  await user.click(screen.getByRole('button', { name: '删除 午饭' }));
+  // Click list item → opens detail modal
+  await user.click(screen.getByRole('button', { name: /午饭/ }));
+
+  // Click "删除" button inside detail modal
+  await user.click(screen.getByRole('button', { name: '删除' }));
 
   // Confirmation dialog should appear
   expect(screen.getByRole('heading', { name: '确认删除' })).toBeInTheDocument();
