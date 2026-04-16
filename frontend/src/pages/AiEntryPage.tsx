@@ -6,6 +6,7 @@ import { useMutationState } from '../hooks/useMutationState';
 import { compressImageToDataUrl } from '../lib/image';
 import type { AccountBalance, CreateTransactionInput, ParsedDraft } from '../types/api';
 import { EditableDraftCard } from '../components/EditableDraftCard';
+import { useToast } from '../components/Toast';
 
 interface AiEntryPageProps {
   accounts?: AccountBalance[];
@@ -71,6 +72,7 @@ export function AiEntryPage({
   createTransactionImpl = createTransaction,
 }: AiEntryPageProps) {
   const appData = useAppData();
+  const { toast } = useToast();
   const { pending, message, setMessage, run } = useMutationState();
   const [inputText, setInputText] = useState(() => loadPersistedState().inputText);
   const [fallbackOccurredAtLocal, setFallbackOccurredAtLocal] = useState(
@@ -130,7 +132,7 @@ export function AiEntryPage({
       return next;
     });
     setSavedCount((c) => c + 1);
-    setMessage(`已保存 ${savedCount + 1} 笔`);
+    toast(`已保存 ${savedCount + 1} 笔`, 'success');
   }
 
   function handleDiscardOne(index: number) {

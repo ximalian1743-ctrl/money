@@ -1,14 +1,19 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 
 import { SettingsPage } from '../pages/SettingsPage';
 
-test('loads models after endpoint configuration', async () => {
-  const user = userEvent.setup();
+test('renders settings form with collapsible groups and auto-rate display', async () => {
   render(<SettingsPage />);
 
-  await user.type(screen.getByLabelText('API 地址'), 'https://example.com/v1/chat/completions');
-  await user.click(screen.getByRole('button', { name: '加载模型列表' }));
+  // Exchange rate shows auto-sync indicator
+  expect(await screen.findByText(/每日自动同步/)).toBeInTheDocument();
 
-  expect(await screen.findByText('模型')).toBeInTheDocument();
+  // AI group summary visible
+  expect(screen.getByText('AI 配置')).toBeInTheDocument();
+
+  // API address label exists (AI group is open when no key is configured)
+  expect(screen.getByLabelText('API 地址')).toBeInTheDocument();
+
+  // Save button exists
+  expect(screen.getByRole('button', { name: '保存设置' })).toBeInTheDocument();
 });

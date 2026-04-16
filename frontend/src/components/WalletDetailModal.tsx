@@ -3,7 +3,10 @@ import { useState, type FormEvent } from 'react';
 import { createTransaction, updateAccountDetails } from '../lib/api';
 import { formatCurrency, formatDateTime, type ExchangeRates } from '../lib/format';
 import { NativeDualCurrencyAmount } from './DualCurrencyAmount';
+import { BottomSheet } from './BottomSheet';
+import { useToast } from './Toast';
 import type { AccountBalance, TransactionRecord, TransactionType } from '../types/api';
+import { getAccountIcon } from '../lib/account-meta';
 
 interface WalletDetailModalProps {
   account: AccountBalance;
@@ -37,111 +40,107 @@ export function WalletDetailModal({
   const isCredit = account.kind === 'liability';
   const [mode, setMode] = useState<ViewMode>('overview');
 
+  const title = (
+    <span className="wallet-modal__title-row">
+      <span aria-hidden>{getAccountIcon(account)}</span>
+      {account.name}
+      {isCredit ? <span className="account-badge">信用卡</span> : null}
+    </span>
+  );
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-content--large" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="wallet-modal__header">
-          <div className="wallet-modal__title-row">
-            <h3 className="modal-title">{account.name}</h3>
-            {isCredit ? <span className="account-badge">信用卡</span> : null}
-          </div>
-          <div className="wallet-modal__balance">
-            <NativeDualCurrencyAmount
-              amount={account.balance}
-              currency={account.currency}
-              rates={rates}
-              align="end"
-            />
-          </div>
-        </div>
-
-        {/* Credit card usage bar */}
-        {isCredit && account.balance > 0 && account.creditLimit > 0 ? (
-          <CreditUsageSection account={account} />
-        ) : null}
-
-        {/* Credit card payment info */}
-        {isCredit &&
-        (account.monthlyBillingDay || account.paymentDueDay || account.nextMonthRepayment) ? (
-          <CreditDatesSection account={account} />
-        ) : null}
-
-        {/* Main content: switches between overview / adjust / editCredit */}
-        {mode === 'overview' ? (
-          <>
-            {/* Recent transactions */}
-            <div className="wallet-modal__section">
-              <h4 className="wallet-modal__section-title">最近动账</h4>
-              {recentTransactions.length === 0 ? (
-                <p className="modal-confirm-text">暂无相关交易</p>
-              ) : (
-                <ul className="recent-tx-list">
-                  {recentTransactions.slice(0, 8).map((item) => {
-                    const dir = getDirectionSign(item.type);
-                    return (
-                      <li key={item.id} className="recent-tx-item">
-                        <div className="recent-tx-item__left">
-                          <strong>{item.title}</strong>
-                          <span className="recent-tx-item__time">
-                            {formatDateTime(item.occurredAt)}
-                          </span>
-                        </div>
-                        <span className={`recent-tx-item__amount ${dir.className}`}>
-                          {dir.sign}
-                          {formatCurrency(item.amount, item.currency)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-
-            {/* Action buttons */}
-            <div className="form-actions">
-              <button type="button" className="button" onClick={() => setMode('adjust')}>
-                调整余额
-              </button>
-              {isCredit ? (
-                <button
-                  type="button"
-                  className="button button--ghost"
-                  onClick={() => setMode('editCredit')}
-                >
-                  编辑卡片信息
-                </button>
-              ) : null}
-              <button type="button" className="button button--ghost" onClick={onClose}>
-                关闭
-              </button>
-            </div>
-          </>
-        ) : mode === 'adjust' ? (
-          <AdjustBalanceForm
-            account={account}
-            onCancel={() => setMode('overview')}
-            onSaved={async () => {
-              await onRefresh();
-              onClose();
-            }}
-          />
-        ) : (
-          <EditCreditForm
-            account={account}
-            onCancel={() => setMode('overview')}
-            onSaved={async () => {
-              await onRefresh();
-              onClose();
-            }}
-          />
-        )}
+    <BottomSheet open onClose={onClose} title={title}>
+      {/* Balance row */}
+      <div className="wallet-modal__balance-row">
+        <span>当前{isCredit ? '欠款' : '余额'}</span>
+        <NativeDualCurrencyAmount
+          amount={account.balance}
+          currency={account.currency}
+          rates={rates}
+          align="end"
+        />
       </div>
-    </div>
+
+      {/* Credit card usage bar */}
+      {isCredit && account.balance > 0 && account.creditLimit > 0 ? (
+        <CreditUsageSection account={account} />
+      ) : null}
+
+      {/* Credit card payment info */}
+      {isCredit &&
+      (account.monthlyBillingDay || account.paymentDueDay || account.nextMonthRepayment) ? (
+        <CreditDatesSection account={account} />
+      ) : null}
+
+      {/* Switchable content */}
+      {mode === 'overview' ? (
+        <>
+          {/* Recent transactions */}
+          <div className="wallet-modal__section">
+            <h4 className="wallet-modal__section-title">最近动账</h4>
+            {recentTransactions.length === 0 ? (
+              <p className="modal-confirm-text">暂无相关交易</p>
+            ) : (
+              <ul className="recent-tx-list">
+                {recentTransactions.slice(0, 6).map((item) => {
+                  const dir = getDirectionSign(item.type);
+                  return (
+                    <li key={item.id} className="recent-tx-item">
+                      <div className="recent-tx-item__left">
+                        <strong>{item.title}</strong>
+                        <span className="recent-tx-item__time">
+                          {formatDateTime(item.occurredAt)}
+                        </span>
+                      </div>
+                      <span className={`recent-tx-item__amount ${dir.className}`}>
+                        {dir.sign}
+                        {formatCurrency(item.amount, item.currency)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div className="form-actions">
+            <button type="button" className="button" onClick={() => setMode('adjust')}>
+              调整余额
+            </button>
+            {isCredit ? (
+              <button
+                type="button"
+                className="button button--ghost"
+                onClick={() => setMode('editCredit')}
+              >
+                编辑卡片信息
+              </button>
+            ) : null}
+          </div>
+        </>
+      ) : mode === 'adjust' ? (
+        <AdjustBalanceForm
+          account={account}
+          onCancel={() => setMode('overview')}
+          onSaved={async () => {
+            await onRefresh();
+            onClose();
+          }}
+        />
+      ) : (
+        <EditCreditForm
+          account={account}
+          onCancel={() => setMode('overview')}
+          onSaved={async () => {
+            await onRefresh();
+            onClose();
+          }}
+        />
+      )}
+    </BottomSheet>
   );
 }
-
-/* ─── Sub-components ─────────────────────────────────────────────────── */
 
 function CreditUsageSection({ account }: { account: AccountBalance }) {
   const usagePct = Math.min(Math.round((account.balance / account.creditLimit) * 100), 100);
@@ -191,8 +190,6 @@ function CreditDatesSection({ account }: { account: AccountBalance }) {
   );
 }
 
-/* ─── Adjust Balance Form (creates adjustment transaction) ──────────── */
-
 function AdjustBalanceForm({
   account,
   onCancel,
@@ -205,6 +202,7 @@ function AdjustBalanceForm({
   const [targetBalance, setTargetBalance] = useState(String(account.balance));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const { toast } = useToast();
 
   const parsedTarget = Number(targetBalance);
   const delta = Number.isFinite(parsedTarget) ? parsedTarget - account.balance : 0;
@@ -217,11 +215,11 @@ function AdjustBalanceForm({
       return;
     }
     if (delta === 0) {
-      setError('新余额与当前余额相同，无需调整');
+      setError('新余额与当前余额相同');
       return;
     }
     if (isCredit && delta < 0) {
-      setError('信用卡欠款减少请使用"信用还款"记账');
+      setError('欠款减少请使用"信用还款"记账');
       return;
     }
 
@@ -231,7 +229,6 @@ function AdjustBalanceForm({
       const amount = Math.abs(delta);
       const occurredAt = new Date().toISOString();
       if (!isCredit) {
-        // Asset: positive delta = income, negative delta = expense
         if (delta > 0) {
           await createTransaction({
             type: 'income',
@@ -254,7 +251,6 @@ function AdjustBalanceForm({
           });
         }
       } else {
-        // Credit card, only supports increasing debt here
         await createTransaction({
           type: 'credit_spending',
           title: '余额调整',
@@ -265,6 +261,10 @@ function AdjustBalanceForm({
           origin: 'manual',
         });
       }
+      toast(
+        `已创建调整流水 ${delta > 0 ? '+' : '-'}${formatCurrency(amount, account.currency)}`,
+        'success',
+      );
       await onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : '调整失败');
@@ -278,10 +278,6 @@ function AdjustBalanceForm({
       <h4 className="wallet-modal__section-title">
         调整{isCredit ? '欠款' : '余额'} — 创建「余额调整」流水
       </h4>
-      <div className="wallet-modal__current">
-        <span>当前{isCredit ? '欠款' : '余额'}</span>
-        <strong>{formatCurrency(account.balance, account.currency)}</strong>
-      </div>
       <label className="field">
         <span>
           新{isCredit ? '欠款' : '余额'}（{account.currency === 'JPY' ? '円' : '元'}）
@@ -296,7 +292,7 @@ function AdjustBalanceForm({
       </label>
       {Number.isFinite(parsedTarget) && delta !== 0 ? (
         <p className="wallet-modal__delta">
-          {delta > 0 ? '将创建' : '将创建'}{' '}
+          将创建{' '}
           <strong className={delta > 0 ? 'ledger-amount--income' : 'ledger-amount--expense'}>
             {delta > 0 ? '+' : '-'}
             {formatCurrency(Math.abs(delta), account.currency)}
@@ -326,8 +322,6 @@ function AdjustBalanceForm({
   );
 }
 
-/* ─── Edit Credit Card Info Form ────────────────────────────────────── */
-
 function EditCreditForm({
   account,
   onCancel,
@@ -349,6 +343,7 @@ function EditCreditForm({
   );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const { toast } = useToast();
 
   function parseDay(raw: string, label: string): number | undefined {
     if (!raw) return undefined;
@@ -374,6 +369,7 @@ function EditCreditForm({
         ...(parsedPaymentDay !== undefined ? { paymentDueDay: parsedPaymentDay } : {}),
         ...(parsedNext !== undefined ? { nextMonthRepayment: parsedNext } : {}),
       });
+      toast('卡片信息已保存', 'success');
       await onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : '更新失败');

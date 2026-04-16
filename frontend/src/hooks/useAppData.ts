@@ -1,7 +1,39 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { getSettings, getSummary, getTransactions } from '../lib/api';
+import {
+  fetchExchangeRate,
+  getSettings,
+  getSummary,
+  getTransactions,
+  saveSettings,
+} from '../lib/api';
 import type { AccountBalance, PublicSettings, SummaryData, TransactionRecord } from '../types/api';
+
+const RATE_CACHE_KEY = 'money-record:rate-cache';
+const RATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+async function autoSyncExchangeRate(current: PublicSettings): Promise<PublicSettings | null> {
+  try {
+    const cachedRaw = localStorage.getItem(RATE_CACHE_KEY);
+    if (cachedRaw) {
+      const cached = JSON.parse(cachedRaw) as { t: number };
+      if (Date.now() - cached.t < RATE_CACHE_TTL_MS) return null;
+    }
+    const rate = await fetchExchangeRate();
+    localStorage.setItem(RATE_CACHE_KEY, JSON.stringify({ t: Date.now() }));
+    const next = await saveSettings({
+      cnyToJpyRate: rate.cnyToJpy,
+      jpyToCnyRate: rate.jpyToCny,
+      aiEndpointUrl: current.aiEndpointUrl,
+      aiApiKey: '',
+      aiProtocol: current.aiProtocol,
+      aiModel: current.aiModel,
+    });
+    return next;
+  } catch {
+    return null;
+  }
+}
 
 const fallbackAccounts: AccountBalance[] = [
   {
@@ -136,10 +168,25 @@ export function useAppData() {
 
   useEffect(() => {
     mountedRef.current = true;
-    void reload();
+    void (async () => {
+      await reload();
+      // Fire-and-forget auto sync of exchange rate (24h cache)
+      const freshSettings = await autoSyncExchangeRate(settings);
+      if (freshSettings && mountedRef.current) {
+        setSettings(freshSettings);
+        // Re-fetch summary so converted values use new rate
+        try {
+          const nextSummary = await getSummary();
+          if (mountedRef.current) setSummary(nextSummary);
+        } catch {
+          /* ignore */
+        }
+      }
+    })();
     return () => {
       mountedRef.current = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

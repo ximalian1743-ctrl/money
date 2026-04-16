@@ -4,6 +4,8 @@ import { deleteTransaction, updateExistingTransaction } from '../lib/api';
 import { formatCurrency, formatDateTime } from '../lib/format';
 import { useAppData } from '../hooks/useAppData';
 import { NativeDualCurrencyAmount } from '../components/DualCurrencyAmount';
+import { BottomSheet } from '../components/BottomSheet';
+import { useToast } from '../components/Toast';
 import type {
   AccountBalance,
   CreateTransactionInput,
@@ -138,12 +140,13 @@ export function LedgerPage({
   deleteTransactionImpl = deleteTransaction,
 }: LedgerPageProps) {
   const appData = useAppData();
+  const { toast } = useToast();
   const [localTransactions, setLocalTransactions] = useState<TransactionRecord[] | null>(
     transactions ?? null,
   );
-  const [message, setMessage] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<TransactionRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<TransactionRecord | null>(null);
   const [detailMode, setDetailMode] = useState<'view' | 'edit'>('view');
@@ -169,48 +172,40 @@ export function LedgerPage({
     await deleteTransactionImpl(id);
     setLocalTransactions((current) => current?.filter((item) => item.id !== id) ?? []);
     setDeleteConfirm(null);
-    setMessage('流水已删除');
+    toast('流水已删除', 'success');
     if (!transactions) {
       await appData.reload();
     }
   }
 
+  const hasActiveFilter = filter !== 'all' || search !== '';
+
   return (
     <>
-      <section className="panel form-grid">
-        <div className="panel__header">
-          <h2>流水</h2>
-          <p>按时间倒序查看每一笔收支与还款。</p>
-        </div>
-
-        {/* Search bar */}
-        <div className="ledger-search">
-          <input
-            className="ledger-search__input"
-            type="text"
-            placeholder="搜索标题、备注、金额..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {search ? (
-            <button type="button" className="ledger-search__clear" onClick={() => setSearch('')}>
-              清除
-            </button>
-          ) : null}
-        </div>
-
-        {/* Filter bar */}
-        <div className="ledger-filter">
-          {FILTER_OPTIONS.map((opt) => (
-            <button
-              key={opt.key}
-              type="button"
-              className={`ledger-filter__btn${filter === opt.key ? ' ledger-filter__btn--active' : ''}`}
-              onClick={() => setFilter(opt.key)}
-            >
-              {opt.label}
-            </button>
-          ))}
+      <section className="panel panel--compact">
+        {/* Filter/search chip bar */}
+        <div className="ledger-bar">
+          <button
+            type="button"
+            className={`ledger-bar__icon${hasActiveFilter ? ' ledger-bar__icon--active' : ''}`}
+            aria-label="搜索与筛选"
+            onClick={() => setSearchOpen(true)}
+          >
+            🔍{hasActiveFilter ? <span className="ledger-bar__dot" /> : null}
+          </button>
+          <div className="ledger-bar__chips">
+            {filter !== 'all' ? (
+              <span className="ledger-bar__chip" onClick={() => setFilter('all')}>
+                {FILTER_OPTIONS.find((f) => f.key === filter)?.label} ✕
+              </span>
+            ) : null}
+            {search ? (
+              <span className="ledger-bar__chip" onClick={() => setSearch('')}>
+                {`“${search}” ✕`}
+              </span>
+            ) : null}
+          </div>
+          <span className="ledger-bar__count">{filtered.length} 笔</span>
         </div>
 
         {filtered.length === 0 ? (
@@ -287,122 +282,155 @@ export function LedgerPage({
             ))}
           </ul>
         )}
-
-        {message ? <p className="status">{message}</p> : null}
       </section>
 
-      {/* Detail / Edit Modal */}
-      {detailItem ? (
-        detailMode === 'edit' ? (
-          <EditTransactionModal
-            item={detailItem}
-            accounts={appData.accounts}
-            onSave={async () => {
-              setDetailItem(null);
-              setDetailMode('view');
-              if (!transactions) await appData.reload();
-              setLocalTransactions(null);
-              setMessage('修改已保存');
-            }}
-            onClose={() => setDetailMode('view')}
-          />
-        ) : (
-          <div
-            className="modal-overlay"
-            onClick={() => {
-              setDetailItem(null);
-              setDetailMode('view');
-            }}
-          >
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <h3 className="modal-title">{detailItem.title}</h3>
-              <div className="modal-detail-grid">
-                <div className="modal-detail-row">
-                  <span className="modal-detail-label">类型</span>
-                  <span>{getDirectionInfo(detailItem.type).label}</span>
-                </div>
-                <div className="modal-detail-row">
-                  <span className="modal-detail-label">金额</span>
-                  <span className={getDirectionInfo(detailItem.type).className}>
-                    {getDirectionInfo(detailItem.type).sign}
-                    {formatCurrency(detailItem.amount, detailItem.currency)}
-                  </span>
-                </div>
-                {detailItem.category ? (
-                  <div className="modal-detail-row">
-                    <span className="modal-detail-label">类别</span>
-                    <span
-                      className="ledger-category-badge"
-                      style={{
-                        backgroundColor: getCategoryColor(detailItem.category) + '20',
-                        color: getCategoryColor(detailItem.category),
-                      }}
-                    >
-                      {detailItem.category}
-                    </span>
-                  </div>
-                ) : null}
-                <div className="modal-detail-row">
-                  <span className="modal-detail-label">时间</span>
-                  <span>{formatDateTime(detailItem.occurredAt)}</span>
-                </div>
-                {detailItem.sourceAccountName ? (
-                  <div className="modal-detail-row">
-                    <span className="modal-detail-label">来源账户</span>
-                    <span>{detailItem.sourceAccountName}</span>
-                  </div>
-                ) : null}
-                {detailItem.targetAccountName ? (
-                  <div className="modal-detail-row">
-                    <span className="modal-detail-label">目标账户</span>
-                    <span>{detailItem.targetAccountName}</span>
-                  </div>
-                ) : null}
-                {detailItem.note ? (
-                  <div className="modal-detail-row">
-                    <span className="modal-detail-label">备注</span>
-                    <span>{detailItem.note}</span>
-                  </div>
-                ) : null}
-                {detailItem.origin === 'ai' && detailItem.aiInputText ? (
-                  <div className="modal-detail-section">
-                    <span className="modal-detail-label">AI 原始输入</span>
-                    <p className="modal-ai-input">{detailItem.aiInputText}</p>
-                  </div>
-                ) : null}
-              </div>
-              <div className="form-actions" style={{ marginTop: 16 }}>
-                <button type="button" className="button" onClick={() => setDetailMode('edit')}>
-                  编辑
-                </button>
+      {/* Search / Filter sheet */}
+      <BottomSheet open={searchOpen} onClose={() => setSearchOpen(false)} title="搜索与筛选">
+        <div className="form-grid">
+          <label className="field">
+            <span>搜索关键词</span>
+            <input
+              type="text"
+              placeholder="标题、备注、金额、账户..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              autoFocus
+            />
+          </label>
+          <div>
+            <p className="field__label">类型筛选</p>
+            <div className="ledger-filter">
+              {FILTER_OPTIONS.map((opt) => (
                 <button
+                  key={opt.key}
                   type="button"
-                  className="button button--danger"
-                  onClick={() => setDeleteConfirm(detailItem)}
+                  className={`ledger-filter__btn${filter === opt.key ? ' ledger-filter__btn--active' : ''}`}
+                  onClick={() => setFilter(opt.key)}
                 >
-                  删除
+                  {opt.label}
                 </button>
-                <button
-                  type="button"
-                  className="button button--ghost"
-                  onClick={() => {
-                    setDetailItem(null);
-                    setDetailMode('view');
-                  }}
-                >
-                  关闭
-                </button>
-              </div>
+              ))}
             </div>
           </div>
-        )
+          <div className="form-actions">
+            <button type="button" className="button" onClick={() => setSearchOpen(false)}>
+              应用
+            </button>
+            <button
+              type="button"
+              className="button button--ghost"
+              onClick={() => {
+                setSearch('');
+                setFilter('all');
+              }}
+            >
+              清除
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* Detail / Edit Sheet */}
+      {detailItem && detailMode === 'edit' ? (
+        <EditTransactionModal
+          item={detailItem}
+          accounts={appData.accounts}
+          onSave={async () => {
+            setDetailItem(null);
+            setDetailMode('view');
+            if (!transactions) await appData.reload();
+            setLocalTransactions(null);
+            toast('修改已保存', 'success');
+          }}
+          onClose={() => setDetailMode('view')}
+        />
       ) : null}
 
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm ? (
-        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="modal-content modal-content--small" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">确认删除</h3>
+      <BottomSheet
+        open={!!detailItem && detailMode === 'view'}
+        onClose={() => {
+          setDetailItem(null);
+          setDetailMode('view');
+        }}
+        title={detailItem?.title}
+      >
+        {detailItem ? (
+          <>
+            <div className="modal-detail-grid">
+              <div className="modal-detail-row">
+                <span className="modal-detail-label">类型</span>
+                <span>{getDirectionInfo(detailItem.type).label}</span>
+              </div>
+              <div className="modal-detail-row">
+                <span className="modal-detail-label">金额</span>
+                <span className={getDirectionInfo(detailItem.type).className}>
+                  {getDirectionInfo(detailItem.type).sign}
+                  {formatCurrency(detailItem.amount, detailItem.currency)}
+                </span>
+              </div>
+              {detailItem.category ? (
+                <div className="modal-detail-row">
+                  <span className="modal-detail-label">类别</span>
+                  <span
+                    className="ledger-category-badge"
+                    style={{
+                      backgroundColor: getCategoryColor(detailItem.category) + '20',
+                      color: getCategoryColor(detailItem.category),
+                    }}
+                  >
+                    {detailItem.category}
+                  </span>
+                </div>
+              ) : null}
+              <div className="modal-detail-row">
+                <span className="modal-detail-label">时间</span>
+                <span>{formatDateTime(detailItem.occurredAt)}</span>
+              </div>
+              {detailItem.sourceAccountName ? (
+                <div className="modal-detail-row">
+                  <span className="modal-detail-label">来源账户</span>
+                  <span>{detailItem.sourceAccountName}</span>
+                </div>
+              ) : null}
+              {detailItem.targetAccountName ? (
+                <div className="modal-detail-row">
+                  <span className="modal-detail-label">目标账户</span>
+                  <span>{detailItem.targetAccountName}</span>
+                </div>
+              ) : null}
+              {detailItem.note ? (
+                <div className="modal-detail-row">
+                  <span className="modal-detail-label">备注</span>
+                  <span>{detailItem.note}</span>
+                </div>
+              ) : null}
+              {detailItem.origin === 'ai' && detailItem.aiInputText ? (
+                <div className="modal-detail-section">
+                  <span className="modal-detail-label">AI 原始输入</span>
+                  <p className="modal-ai-input">{detailItem.aiInputText}</p>
+                </div>
+              ) : null}
+            </div>
+            <div className="form-actions" style={{ marginTop: 16 }}>
+              <button type="button" className="button" onClick={() => setDetailMode('edit')}>
+                编辑
+              </button>
+              <button
+                type="button"
+                className="button button--danger"
+                onClick={() => setDeleteConfirm(detailItem)}
+              >
+                删除
+              </button>
+            </div>
+          </>
+        ) : null}
+      </BottomSheet>
+
+      {/* Delete Confirmation Sheet */}
+      <BottomSheet open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="确认删除">
+        {deleteConfirm ? (
+          <>
             <p className="modal-confirm-text">
               确定要删除「{deleteConfirm.title}」这笔
               {getDirectionInfo(deleteConfirm.type).label}记录吗？
@@ -427,9 +455,9 @@ export function LedgerPage({
                 确认删除
               </button>
             </div>
-          </div>
-        </div>
-      ) : null}
+          </>
+        ) : null}
+      </BottomSheet>
     </>
   );
 }
@@ -515,25 +543,24 @@ function EditTransactionModal({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-content--large" onClick={(e) => e.stopPropagation()}>
-        <h3 className="modal-title">编辑交易</h3>
-        <div className="form-grid">
-          <label className="field">
-            <span>类型</span>
-            <select value={type} onChange={(e) => setType(e.target.value as TransactionType)}>
-              {TYPE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>标题</span>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </label>
-          <label className="field">
+    <BottomSheet open onClose={onClose} title="编辑交易" locked={pending}>
+      <div className="form-grid">
+        <label className="field">
+          <span>类型</span>
+          <select value={type} onChange={(e) => setType(e.target.value as TransactionType)}>
+            {TYPE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>标题</span>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} />
+        </label>
+        <div className="editable-draft__row">
+          <label className="field" style={{ flex: 2 }}>
             <span>金额</span>
             <input
               type="number"
@@ -542,86 +569,91 @@ function EditTransactionModal({
               onChange={(e) => setAmount(e.target.value)}
             />
           </label>
-          <label className="field">
+          <label className="field" style={{ flex: 1 }}>
             <span>币种</span>
             <select value={currency} onChange={(e) => setCurrency(e.target.value as 'CNY' | 'JPY')}>
               <option value="CNY">人民币</option>
               <option value="JPY">日元</option>
             </select>
           </label>
-          {needsSource ? (
-            <label className="field">
-              <span>{type === 'credit_transfer' ? '信用账户' : '支付账户'}</span>
-              <select
-                value={sourceAccountName}
-                onChange={(e) => setSourceAccountName(e.target.value)}
-              >
-                <option value="">请选择</option>
-                {(type === 'credit_transfer' ? liabilityAccounts : assetAccounts).map((a) => (
-                  <option key={a.id} value={a.name}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          {needsTarget ? (
-            <label className="field">
-              <span>
-                {type === 'income'
-                  ? '入账账户'
-                  : type === 'credit_spending'
-                    ? '信用账户'
-                    : '目标账户'}
-              </span>
-              <select
-                value={targetAccountName}
-                onChange={(e) => setTargetAccountName(e.target.value)}
-              >
-                <option value="">请选择</option>
-                {(type === 'credit_spending' || type === 'credit_repayment'
-                  ? liabilityAccounts
-                  : assetAccounts
-                ).map((a) => (
-                  <option key={a.id} value={a.name}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
+        </div>
+        {needsSource ? (
           <label className="field">
-            <span>分类</span>
-            <input value={category} onChange={(e) => setCategory(e.target.value)} />
-          </label>
-          <label className="field">
-            <span>时间</span>
-            <input
-              type="datetime-local"
-              value={occurredAt}
-              onChange={(e) => setOccurredAt(e.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>备注</span>
-            <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-          </label>
-          {error ? <p className="status status--warning">{error}</p> : null}
-          <div className="form-actions">
-            <button
-              type="button"
-              className="button"
-              disabled={pending}
-              onClick={() => void handleSave()}
+            <span>{type === 'credit_transfer' ? '信用账户' : '支付账户'}</span>
+            <select
+              value={sourceAccountName}
+              onChange={(e) => setSourceAccountName(e.target.value)}
             >
-              {pending ? '保存中...' : '保存修改'}
-            </button>
-            <button type="button" className="button button--ghost" onClick={onClose}>
-              取消
-            </button>
-          </div>
+              <option value="">请选择</option>
+              {(type === 'credit_transfer' ? liabilityAccounts : assetAccounts).map((a) => (
+                <option key={a.id} value={a.name}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        {needsTarget ? (
+          <label className="field">
+            <span>
+              {type === 'income'
+                ? '入账账户'
+                : type === 'credit_spending'
+                  ? '信用账户'
+                  : '目标账户'}
+            </span>
+            <select
+              value={targetAccountName}
+              onChange={(e) => setTargetAccountName(e.target.value)}
+            >
+              <option value="">请选择</option>
+              {(type === 'credit_spending' || type === 'credit_repayment'
+                ? liabilityAccounts
+                : assetAccounts
+              ).map((a) => (
+                <option key={a.id} value={a.name}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <label className="field">
+          <span>分类</span>
+          <input value={category} onChange={(e) => setCategory(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>时间</span>
+          <input
+            type="datetime-local"
+            value={occurredAt}
+            onChange={(e) => setOccurredAt(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>备注</span>
+          <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        </label>
+        {error ? <p className="status status--warning">{error}</p> : null}
+        <div className="form-actions">
+          <button
+            type="button"
+            className="button"
+            disabled={pending}
+            onClick={() => void handleSave()}
+          >
+            {pending ? '保存中...' : '保存修改'}
+          </button>
+          <button
+            type="button"
+            className="button button--ghost"
+            onClick={onClose}
+            disabled={pending}
+          >
+            取消
+          </button>
         </div>
       </div>
-    </div>
+    </BottomSheet>
   );
 }

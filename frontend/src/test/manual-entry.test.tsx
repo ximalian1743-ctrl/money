@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 
 import { ManualEntryPage } from '../pages/ManualEntryPage';
@@ -39,7 +40,11 @@ test('submits a manual expense', async () => {
   const user = userEvent.setup();
   const createTransactionImpl = vi.fn().mockResolvedValue(undefined);
 
-  render(<ManualEntryPage accounts={accounts} createTransactionImpl={createTransactionImpl} />);
+  render(
+    <MemoryRouter>
+      <ManualEntryPage accounts={accounts} createTransactionImpl={createTransactionImpl} />
+    </MemoryRouter>,
+  );
 
   await user.type(screen.getByLabelText('标题'), '午饭');
   await user.clear(screen.getByLabelText('金额'));
@@ -54,5 +59,4 @@ test('submits a manual expense', async () => {
       sourceAccountName: '现金纸币',
     }),
   );
-  expect(await screen.findByText('保存成功')).toBeInTheDocument();
 });

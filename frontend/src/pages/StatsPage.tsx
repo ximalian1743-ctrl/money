@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { formatCurrency } from '../lib/format';
 import { transactionsToCsv, downloadCsv } from '../lib/export';
@@ -196,6 +196,28 @@ export function StatsPage() {
     downloadCsv(csv, filename);
   }
 
+  // Swipe gesture for month navigation
+  const touchStartX = useRef<number | null>(null);
+  const currentIdx = availableMonths.indexOf(selectedMonth);
+  function goToMonth(delta: number) {
+    if (availableMonths.length === 0) return;
+    const idx = currentIdx === -1 ? 0 : currentIdx;
+    const next = Math.max(0, Math.min(availableMonths.length - 1, idx + delta));
+    if (availableMonths[next]) setSelectedMonth(availableMonths[next]);
+  }
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function onTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 60) {
+      // older month is at higher index; swipe left = newer (smaller index)
+      goToMonth(dx > 0 ? 1 : -1);
+    }
+    touchStartX.current = null;
+  }
+
   // Get all known categories for budget dropdown
   const allCategories = useMemo(() => {
     const cats = new Set<string>();
@@ -206,10 +228,19 @@ export function StatsPage() {
   }, [transactions]);
 
   return (
-    <section className="stack">
-      {/* Month selector */}
-      <div className="panel">
+    <section className="stack" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      {/* Month selector with swipe arrows */}
+      <div className="panel panel--compact">
         <div className="stats-month-selector">
+          <button
+            type="button"
+            className="stats-month-arrow"
+            aria-label="上一个月"
+            disabled={currentIdx >= availableMonths.length - 1}
+            onClick={() => goToMonth(1)}
+          >
+            ‹
+          </button>
           <select
             className="stats-month-select"
             value={selectedMonth}
@@ -226,8 +257,17 @@ export function StatsPage() {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            className="stats-month-arrow"
+            aria-label="下一个月"
+            disabled={currentIdx <= 0}
+            onClick={() => goToMonth(-1)}
+          >
+            ›
+          </button>
           <button type="button" className="button button--ghost" onClick={handleExportCsv}>
-            导出 CSV
+            CSV
           </button>
         </div>
       </div>

@@ -1,6 +1,9 @@
+import { useNavigate } from 'react-router-dom';
+
 import { createTransaction } from '../lib/api';
 import { useAppData } from '../hooks/useAppData';
 import { useMutationState } from '../hooks/useMutationState';
+import { useToast } from '../components/Toast';
 import type { AccountBalance, CreateTransactionInput } from '../types/api';
 import { TransactionForm } from '../components/TransactionForm';
 
@@ -14,7 +17,9 @@ export function ManualEntryPage({
   createTransactionImpl = createTransaction,
 }: ManualEntryPageProps) {
   const appData = useAppData();
-  const { pending, message, setMessage, run } = useMutationState();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { pending, run } = useMutationState();
   const currentAccounts = accounts ?? appData.accounts;
 
   async function handleSubmit(input: CreateTransactionInput) {
@@ -22,7 +27,8 @@ export function ManualEntryPage({
       await createTransactionImpl(input);
       await appData.reload();
     }, '保存成功');
-    setMessage('保存成功');
+    toast('保存成功', 'success');
+    navigate('/');
   }
 
   return (
@@ -32,7 +38,6 @@ export function ManualEntryPage({
         submitLabel={pending ? '保存中...' : '保存记录'}
         onSubmit={handleSubmit}
       />
-      {message ? <p className="status">{message}</p> : null}
     </section>
   );
 }
