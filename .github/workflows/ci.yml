@@ -43,4 +43,11 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npx wrangler pages project create money --production-branch=main || echo "Project already exists, continuing"
-          npx wrangler pages deploy frontend/dist --project-name=money --commit-dirty=true
+          # Cloudflare Pages API rejects some non-ASCII commit messages.
+          # Pass a safe short message while keeping real commit hash for tracking.
+          SAFE_MSG="deploy $(git rev-parse --short HEAD)"
+          npx wrangler pages deploy frontend/dist \
+            --project-name=money \
+            --commit-dirty=true \
+            --commit-hash="$(git rev-parse HEAD)" \
+            --commit-message="$SAFE_MSG"
