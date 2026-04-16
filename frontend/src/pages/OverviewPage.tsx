@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
+import { createTransaction } from '../lib/api';
 import { AccountBalanceList } from '../components/AccountBalanceList';
 import { NativeDualCurrencyAmount } from '../components/DualCurrencyAmount';
 import { SummaryCard } from '../components/SummaryCard';
 import { formatCurrency, formatDateTime } from '../lib/format';
 import { useAppData } from '../hooks/useAppData';
-import type { TransactionRecord, TransactionType } from '../types/api';
+import type { CreateTransactionInput, TransactionRecord, TransactionType } from '../types/api';
 
 function getDirectionSign(type: TransactionType): { sign: string; className: string } {
   switch (type) {
@@ -19,21 +20,96 @@ function getDirectionSign(type: TransactionType): { sign: string; className: str
   }
 }
 
+interface QuickTemplate {
+  title: string;
+  type: TransactionType;
+  category: string;
+  accountName: string;
+  currency: 'CNY' | 'JPY';
+  count: number;
+}
+
+function computeQuickTemplates(transactions: TransactionRecord[]): QuickTemplate[] {
+  const map = new Map<string, QuickTemplate>();
+  for (const t of transactions) {
+    if (t.type !== 'expense' && t.type !== 'credit_spending') continue;
+    const key = `${t.title}|${t.type}|${t.sourceAccountName || t.targetAccountName}`;
+    const existing = map.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      map.set(key, {
+        title: t.title,
+        type: t.type,
+        category: t.category,
+        accountName: t.sourceAccountName || t.targetAccountName,
+        currency: t.currency,
+        count: 1,
+      });
+    }
+  }
+  return Array.from(map.values())
+    .filter((t) => t.count >= 2)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+}
+
 export function OverviewPage() {
   const { accounts, summary, settings, transactions, error, reload } = useAppData();
   const netJpy = summary.assetsInJpy - summary.totalLiabilitiesJpy;
   const recentTransactions = transactions.slice(0, 5);
 
+  const quickTemplates = useMemo(() => computeQuickTemplates(transactions), [transactions]);
+
   const [walletDetail, setWalletDetail] = useState<{
     name: string;
     items: TransactionRecord[];
   } | null>(null);
+  const [quickMessage, setQuickMessage] = useState('');
 
   function handleAccountClick(accountName: string) {
     const related = transactions
       .filter((t) => t.sourceAccountName === accountName || t.targetAccountName === accountName)
       .slice(0, 10);
     setWalletDetail({ name: accountName, items: related });
+  }
+
+  async function handleQuickEntry(template: QuickTemplate) {
+    const input: CreateTransactionInput = {
+      type: template.type,
+      title: template.title,
+      amount: 0,
+      currency: template.currency,
+      category: template.category,
+      occurredAt: new Date().toISOString(),
+      origin: 'manual',
+    };
+    if (template.type === 'expense') {
+      input.sourceAccountName = template.accountName;
+    } else if (template.type === 'credit_spending') {
+      input.targetAccountName = template.accountName;
+    }
+
+    // Quick entry prompts for amount
+    const amountStr = window.prompt(
+      `${template.title} — 输入金额（${template.currency === 'JPY' ? '円' : '元'}）`,
+    );
+    if (!amountStr) return;
+    const amount = Number(amountStr);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setQuickMessage('金额无效');
+      return;
+    }
+    input.amount = amount;
+
+    try {
+      await createTransaction(input);
+      await reload();
+      setQuickMessage(`已记录: ${template.title} ${formatCurrency(amount, template.currency)}`);
+      setTimeout(() => setQuickMessage(''), 3000);
+    } catch (err) {
+      setQuickMessage(err instanceof Error ? err.message : '记录失败');
+    }
   }
 
   return (
@@ -72,7 +148,7 @@ export function OverviewPage() {
         />
       </div>
 
-      {/* Credit card debt — shown only when non-zero */}
+      {/* Credit card debt */}
       {summary.totalLiabilitiesJpy > 0 ? (
         <SummaryCard
           label="信用卡欠款"
@@ -85,6 +161,32 @@ export function OverviewPage() {
           }
           tone="danger"
         />
+      ) : null}
+
+      {/* Quick entry buttons */}
+      {quickTemplates.length > 0 ? (
+        <section className="panel">
+          <div className="panel__header">
+            <h2>快捷记账</h2>
+            <p>根据历史高频交易生成，点击后输入金额即可。</p>
+          </div>
+          <div className="quick-entry-grid">
+            {quickTemplates.map((t) => (
+              <button
+                key={`${t.title}-${t.accountName}`}
+                type="button"
+                className="quick-entry-btn"
+                onClick={() => void handleQuickEntry(t)}
+              >
+                <span className="quick-entry-btn__title">{t.title}</span>
+                <span className="quick-entry-btn__sub">
+                  {t.accountName} · {t.category || '未分类'}
+                </span>
+              </button>
+            ))}
+          </div>
+          {quickMessage ? <p className="status">{quickMessage}</p> : null}
+        </section>
       ) : null}
 
       {/* Account list */}

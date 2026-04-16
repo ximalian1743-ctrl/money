@@ -3,8 +3,9 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 const navItems = [
   { to: '/', label: '总览' },
   { to: '/manual', label: '记一笔' },
-  { to: '/ai', label: 'AI 记账' },
+  { to: '/ai', label: 'AI' },
   { to: '/ledger', label: '流水' },
+  { to: '/stats', label: '统计' },
   { to: '/settings', label: '设置' },
 ];
 

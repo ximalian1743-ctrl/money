@@ -230,6 +230,20 @@ export async function createTransaction(
   return { ...input, id, createdAt: now, deletedAt: null };
 }
 
+export async function updateTransaction(
+  id: number,
+  patch: Partial<Omit<TransactionRecord, 'id' | 'createdAt' | 'deletedAt'>>,
+): Promise<TransactionRecord> {
+  const db = await getDb();
+  const existing = (await db.get('transactions', id)) as TransactionRecord | undefined;
+  if (!existing || existing.deletedAt) {
+    throw new Error('找不到该流水记录');
+  }
+  const updated: TransactionRecord = { ...existing, ...patch };
+  await db.put('transactions', updated);
+  return updated;
+}
+
 export async function softDeleteTransaction(id: number): Promise<boolean> {
   const db = await getDb();
   const existing = (await db.get('transactions', id)) as TransactionRecord | undefined;

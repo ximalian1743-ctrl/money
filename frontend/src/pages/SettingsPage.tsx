@@ -1,6 +1,13 @@
 import { FormEvent, useEffect, useRef, useState, type ChangeEvent } from 'react';
 
-import { exportAll, importAll, loadModels, resetDb, saveSettings } from '../lib/api';
+import {
+  exportAll,
+  fetchExchangeRate,
+  importAll,
+  loadModels,
+  resetDb,
+  saveSettings,
+} from '../lib/api';
 import { useAppData } from '../hooks/useAppData';
 import type { SettingsInput } from '../types/api';
 
@@ -110,17 +117,39 @@ export function SettingsPage() {
         <p>保存汇率、API 地址、Key 和模型。</p>
       </div>
 
-      <label className="field">
-        <span>人民币兑日元</span>
-        <input
-          aria-label="人民币兑日元"
-          type="number"
-          value={form.cnyToJpyRate}
-          onChange={(event) =>
-            setForm((current) => ({ ...current, cnyToJpyRate: Number(event.target.value) }))
-          }
-        />
-      </label>
+      <div className="field field--inline">
+        <label className="field">
+          <span>人民币兑日元</span>
+          <input
+            aria-label="人民币兑日元"
+            type="number"
+            value={form.cnyToJpyRate}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, cnyToJpyRate: Number(event.target.value) }))
+            }
+          />
+        </label>
+        <button
+          type="button"
+          className="button button--ghost"
+          onClick={async () => {
+            try {
+              setMessage('正在获取实时汇率...');
+              const rate = await fetchExchangeRate();
+              setForm((current) => ({
+                ...current,
+                cnyToJpyRate: rate.cnyToJpy,
+                jpyToCnyRate: rate.jpyToCny,
+              }));
+              setMessage(`已获取: 1元=${rate.cnyToJpy}円`);
+            } catch (error) {
+              setMessage(error instanceof Error ? error.message : '汇率获取失败');
+            }
+          }}
+        >
+          自动获取
+        </button>
+      </div>
 
       <label className="field">
         <span>日元兑人民币</span>

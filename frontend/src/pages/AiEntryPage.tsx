@@ -5,18 +5,18 @@ import { useAppData } from '../hooks/useAppData';
 import { useMutationState } from '../hooks/useMutationState';
 import { compressImageToDataUrl } from '../lib/image';
 import type { AccountBalance, CreateTransactionInput, ParsedDraft } from '../types/api';
-import { ParsedDraftCard } from '../components/ParsedDraftCard';
+import { EditableDraftCard } from '../components/EditableDraftCard';
 
 interface AiEntryPageProps {
   accounts?: AccountBalance[];
   parseTransactionImpl?: (input: {
     inputText: string;
     fallbackOccurredAt?: string;
-  }) => Promise<ParsedDraft>;
+  }) => Promise<ParsedDraft[]>;
   parseReceiptImpl?: (input: {
     imageDataUrl: string;
     fallbackOccurredAt?: string;
-  }) => Promise<ParsedDraft>;
+  }) => Promise<ParsedDraft[]>;
   compressImageImpl?: (file: File) => Promise<string>;
   createTransactionImpl?: (input: CreateTransactionInput) => Promise<unknown>;
 }
@@ -24,7 +24,6 @@ interface AiEntryPageProps {
 interface PersistedAiEntryState {
   inputText: string;
   fallbackOccurredAtLocal: string;
-  draft: ParsedDraft | null;
 }
 
 const AI_ENTRY_STORAGE_KEY = 'money-record:ai-entry-state';
@@ -39,60 +38,30 @@ function toIsoString(value: string): string {
   return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
 }
 
-function loadPersistedAiEntryState(): PersistedAiEntryState {
-  const fallbackState: PersistedAiEntryState = {
+function loadPersistedState(): PersistedAiEntryState {
+  const fallback: PersistedAiEntryState = {
     inputText: '',
     fallbackOccurredAtLocal: toDatetimeLocalValue(),
-    draft: null,
   };
-
   if (typeof window === 'undefined' || typeof window.localStorage?.getItem !== 'function') {
-    return fallbackState;
+    return fallback;
   }
-
   const raw = window.localStorage.getItem(AI_ENTRY_STORAGE_KEY);
-  if (!raw) {
-    return fallbackState;
-  }
-
+  if (!raw) return fallback;
   try {
     const parsed = JSON.parse(raw) as PersistedAiEntryState;
     return {
       inputText: parsed.inputText ?? '',
-      fallbackOccurredAtLocal:
-        parsed.fallbackOccurredAtLocal ?? fallbackState.fallbackOccurredAtLocal,
-      draft: parsed.draft ?? null,
+      fallbackOccurredAtLocal: parsed.fallbackOccurredAtLocal ?? fallback.fallbackOccurredAtLocal,
     };
   } catch {
-    return fallbackState;
+    return fallback;
   }
 }
 
-function mapDraftToTransaction(draft: ParsedDraft, originalInput: string): CreateTransactionInput {
-  return {
-    type: draft.type,
-    title: draft.title,
-    amount: draft.amount,
-    currency: draft.currency,
-    sourceAccountName:
-      draft.type === 'expense' ||
-      draft.type === 'transfer' ||
-      draft.type === 'credit_repayment' ||
-      draft.type === 'credit_transfer'
-        ? draft.accountName
-        : undefined,
-    targetAccountName:
-      draft.type === 'income' || draft.type === 'transfer' || draft.type === 'credit_transfer'
-        ? draft.targetAccountName
-        : draft.type === 'credit_spending' || draft.type === 'credit_repayment'
-          ? draft.targetAccountName || draft.accountName
-          : undefined,
-    category: draft.category,
-    note: draft.note,
-    occurredAt: draft.occurredAt,
-    origin: 'ai',
-    aiInputText: originalInput,
-  };
+function persist(state: PersistedAiEntryState) {
+  if (typeof window === 'undefined' || typeof window.localStorage?.setItem !== 'function') return;
+  window.localStorage.setItem(AI_ENTRY_STORAGE_KEY, JSON.stringify(state));
 }
 
 export function AiEntryPage({
@@ -103,96 +72,64 @@ export function AiEntryPage({
 }: AiEntryPageProps) {
   const appData = useAppData();
   const { pending, message, setMessage, run } = useMutationState();
-  const [inputText, setInputText] = useState(() => loadPersistedAiEntryState().inputText);
+  const [inputText, setInputText] = useState(() => loadPersistedState().inputText);
   const [fallbackOccurredAtLocal, setFallbackOccurredAtLocal] = useState(
-    () => loadPersistedAiEntryState().fallbackOccurredAtLocal,
+    () => loadPersistedState().fallbackOccurredAtLocal,
   );
-  const [draft, setDraft] = useState<ParsedDraft | null>(() => loadPersistedAiEntryState().draft);
+  const [drafts, setDrafts] = useState<ParsedDraft[]>([]);
+  const [savedCount, setSavedCount] = useState(0);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
-
-  function persistState(nextState: PersistedAiEntryState) {
-    if (typeof window === 'undefined' || typeof window.localStorage?.setItem !== 'function') {
-      return;
-    }
-
-    window.localStorage.setItem(AI_ENTRY_STORAGE_KEY, JSON.stringify(nextState));
-  }
 
   async function handleParse() {
     const fallbackOccurredAt = toIsoString(fallbackOccurredAtLocal);
     try {
-      const nextDraft = await run(
-        () =>
-          parseTransactionImpl({
-            inputText,
-            fallbackOccurredAt,
-          }),
-        '解析完成',
+      const nextDrafts = await run(
+        () => parseTransactionImpl({ inputText, fallbackOccurredAt }),
+        `解析完成，共 ${drafts.length} 笔`,
       );
-      setDraft(nextDraft);
-      persistState({
-        inputText,
-        fallbackOccurredAtLocal,
-        draft: nextDraft,
-      });
+      setDrafts(nextDrafts);
+      setSavedCount(0);
     } catch {
-      setDraft(null);
-      persistState({
-        inputText,
-        fallbackOccurredAtLocal,
-        draft: null,
-      });
+      setDrafts([]);
     }
   }
 
   async function handleImagePick(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = '';
-    if (!file) {
-      return;
-    }
-
+    if (!file) return;
     const fallbackOccurredAt = toIsoString(fallbackOccurredAtLocal);
     try {
       const imageDataUrl = await compressImageImpl(file);
       setReceiptPreview(imageDataUrl);
-      const nextDraft = await run(
+      const nextDrafts = await run(
         () => parseReceiptImpl({ imageDataUrl, fallbackOccurredAt }),
         '图片解析完成',
       );
-      setDraft(nextDraft);
-      persistState({
-        inputText,
-        fallbackOccurredAtLocal,
-        draft: nextDraft,
-      });
+      setDrafts(nextDrafts);
+      setSavedCount(0);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '图片解析失败');
-      setDraft(null);
-      persistState({
-        inputText,
-        fallbackOccurredAtLocal,
-        draft: null,
-      });
+      setDrafts([]);
     }
   }
 
-  async function handleConfirm() {
-    if (!draft) {
-      return;
-    }
+  async function handleConfirmOne(index: number, input: CreateTransactionInput) {
+    await createTransactionImpl(input);
+    await appData.reload();
+    setDrafts((prev) => prev.filter((_, i) => i !== index));
+    setSavedCount((c) => c + 1);
+    setMessage(`已保存 ${savedCount + 1} 笔`);
+  }
 
-    await run(async () => {
-      await createTransactionImpl(mapDraftToTransaction(draft, inputText));
-      await appData.reload();
-    }, '已保存到流水');
-    setDraft(null);
-    persistState({
-      inputText,
-      fallbackOccurredAtLocal,
-      draft: null,
-    });
-    setMessage('已保存到流水');
+  function handleDiscardOne(index: number) {
+    setDrafts((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleConfirmAll() {
+    // Confirm all drafts sequentially — each needs user's current edits
+    // This button is a convenience; individual cards handle their own edits
+    setMessage('请逐条确认每笔交易');
   }
 
   return (
@@ -200,7 +137,7 @@ export function AiEntryPage({
       <div className="panel form-grid">
         <div className="panel__header">
           <h2>AI 记账</h2>
-          <p>直接输入中文短句，例如“午饭38元，用现金纸币”。</p>
+          <p>输入中文短句，支持一次多笔，如"午饭38元现金，地铁3元西瓜卡"。</p>
         </div>
 
         <label className="field">
@@ -210,13 +147,9 @@ export function AiEntryPage({
             rows={5}
             value={inputText}
             onChange={(event) => {
-              const nextInputText = event.target.value;
-              setInputText(nextInputText);
-              persistState({
-                inputText: nextInputText,
-                fallbackOccurredAtLocal,
-                draft,
-              });
+              const next = event.target.value;
+              setInputText(next);
+              persist({ inputText: next, fallbackOccurredAtLocal });
             }}
           />
         </label>
@@ -228,19 +161,20 @@ export function AiEntryPage({
             type="datetime-local"
             value={fallbackOccurredAtLocal}
             onChange={(event) => {
-              const nextValue = event.target.value;
-              setFallbackOccurredAtLocal(nextValue);
-              persistState({
-                inputText,
-                fallbackOccurredAtLocal: nextValue,
-                draft,
-              });
+              const next = event.target.value;
+              setFallbackOccurredAtLocal(next);
+              persist({ inputText, fallbackOccurredAtLocal: next });
             }}
           />
         </label>
 
         <div className="form-actions">
-          <button type="button" className="button" onClick={() => void handleParse()}>
+          <button
+            type="button"
+            className="button"
+            disabled={pending}
+            onClick={() => void handleParse()}
+          >
             {pending ? '解析中...' : '解析文字'}
           </button>
           <label className="button button--ghost">
@@ -265,9 +199,23 @@ export function AiEntryPage({
         {message ? <p className="status">{message}</p> : null}
       </div>
 
-      {draft ? (
-        <ParsedDraftCard draft={draft} rates={appData.settings} onConfirm={handleConfirm} />
+      {drafts.length > 1 ? (
+        <div className="multi-draft-header">
+          <span>共解析出 {drafts.length} 笔交易，逐条确认或修改后入账</span>
+        </div>
       ) : null}
+
+      {drafts.map((draft, index) => (
+        <EditableDraftCard
+          key={`${draft.title}-${draft.amount}-${index}`}
+          draft={draft}
+          accounts={appData.accounts}
+          rates={appData.settings}
+          originalInput={inputText}
+          onConfirm={(input) => handleConfirmOne(index, input)}
+          onDiscard={() => handleDiscardOne(index)}
+        />
+      ))}
     </section>
   );
 }

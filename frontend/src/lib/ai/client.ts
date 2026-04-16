@@ -5,7 +5,7 @@ import type {
   ParsedTransactionDraft,
   SettingsRecord,
 } from '../domain/types';
-import { deriveModelsUrl, extractJsonObject, extractTextPayload } from './provider';
+import { deriveModelsUrl, extractJsonPayload, extractTextPayload } from './provider';
 
 function buildSystemPrompt(accountNames: string[], fallbackOccurredAt?: string): string {
   const lines = [
@@ -24,6 +24,8 @@ function buildSystemPrompt(accountNames: string[], fallbackOccurredAt?: string):
     '- credit_transfer: accountName=付款的信用卡（负债账户），targetAccountName=被充值的资产账户（如交通卡、电子钱包）。用于用信用卡向资产账户充值/转账的场景，信用卡欠款增加，资产账户余额同步增加。',
     '如果用户输入是"设置初始金额/调整初始余额"之类的账户设置诉求（不是一笔流水），请在 warnings 里提醒用户到总览页直接编辑账户初始余额，并仍按 income 解析以便估算。',
     '如果无法确定账户，请填空字符串并在 warnings 中说明。',
+    '如果用户输入包含多笔交易（如"午饭38元，地铁3元"），请返回 JSON 数组，每笔交易一个对象。',
+    '如果只有一笔交易，返回单个 JSON 对象即可。',
   ];
   if (fallbackOccurredAt) {
     lines.push(
@@ -112,7 +114,7 @@ export async function parseTransactionText(options: {
   accounts: readonly AccountRecord[];
   inputText: string;
   fallbackOccurredAt?: string;
-}): Promise<ParsedTransactionDraft> {
+}): Promise<ParsedTransactionDraft[]> {
   const { settings, accounts, inputText, fallbackOccurredAt } = options;
   const systemPrompt = buildSystemPrompt(
     accounts.map((account) => account.name),
@@ -126,8 +128,11 @@ export async function parseTransactionText(options: {
   });
   const payload = await callAi(settings, body);
   const text = extractTextPayload(settings.aiProtocol, payload);
-  const raw = extractJsonObject(text);
-  return normalizeParsedDraft(raw, inputText, accounts, fallbackOccurredAt);
+  const raw = extractJsonPayload(text);
+  if (Array.isArray(raw)) {
+    return raw.map((item) => normalizeParsedDraft(item, inputText, accounts, fallbackOccurredAt));
+  }
+  return [normalizeParsedDraft(raw, inputText, accounts, fallbackOccurredAt)];
 }
 
 export async function parseReceiptImage(options: {
@@ -135,7 +140,7 @@ export async function parseReceiptImage(options: {
   accounts: readonly AccountRecord[];
   imageDataUrl: string;
   fallbackOccurredAt?: string;
-}): Promise<ParsedTransactionDraft> {
+}): Promise<ParsedTransactionDraft[]> {
   const { settings, accounts, imageDataUrl, fallbackOccurredAt } = options;
   const userInstruction =
     '请从这张票据图片中识别出购买内容、金额、币种、商家/场景，并按约定的 JSON 字段返回。' +
@@ -153,9 +158,12 @@ export async function parseReceiptImage(options: {
   });
   const payload = await callAi(settings, body);
   const text = extractTextPayload(settings.aiProtocol, payload);
-  const raw = extractJsonObject(text);
+  const raw = extractJsonPayload(text);
   const stubInput = `[receipt-image] ${imageDataUrl.slice(0, 64)}...`;
-  return normalizeParsedDraft(raw, stubInput, accounts, fallbackOccurredAt);
+  if (Array.isArray(raw)) {
+    return raw.map((item) => normalizeParsedDraft(item, stubInput, accounts, fallbackOccurredAt));
+  }
+  return [normalizeParsedDraft(raw, stubInput, accounts, fallbackOccurredAt)];
 }
 
 export async function loadModels(

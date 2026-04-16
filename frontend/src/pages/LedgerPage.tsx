@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
-import { deleteTransaction } from '../lib/api';
-import { formatDateTime } from '../lib/format';
+import { deleteTransaction, updateExistingTransaction } from '../lib/api';
+import { formatCurrency, formatDateTime } from '../lib/format';
 import { useAppData } from '../hooks/useAppData';
 import { NativeDualCurrencyAmount } from '../components/DualCurrencyAmount';
-import type { TransactionRecord, TransactionType } from '../types/api';
+import type {
+  AccountBalance,
+  CreateTransactionInput,
+  TransactionRecord,
+  TransactionType,
+} from '../types/api';
 
 interface LedgerPageProps {
   transactions?: TransactionRecord[];
@@ -72,6 +77,19 @@ function matchesFilter(type: TransactionType, filter: FilterType): boolean {
   return true;
 }
 
+function matchesSearch(item: TransactionRecord, query: string): boolean {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  return (
+    item.title.toLowerCase().includes(q) ||
+    item.note.toLowerCase().includes(q) ||
+    item.category.toLowerCase().includes(q) ||
+    item.sourceAccountName.toLowerCase().includes(q) ||
+    item.targetAccountName.toLowerCase().includes(q) ||
+    String(item.amount).includes(q)
+  );
+}
+
 function formatDateGroup(dateStr: string): string {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return dateStr;
@@ -99,6 +117,22 @@ const FILTER_OPTIONS: { key: FilterType; label: string }[] = [
   { key: 'credit', label: '信用卡' },
 ];
 
+const TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
+  { value: 'expense', label: '支出' },
+  { value: 'income', label: '收入' },
+  { value: 'transfer', label: '转账' },
+  { value: 'credit_spending', label: '信用消费' },
+  { value: 'credit_repayment', label: '信用还款' },
+  { value: 'credit_transfer', label: '信用充值' },
+];
+
+function toDatetimeLocal(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (v: number) => String(v).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function LedgerPage({
   transactions,
   deleteTransactionImpl = deleteTransaction,
@@ -109,11 +143,15 @@ export function LedgerPage({
   );
   const [message, setMessage] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
+  const [search, setSearch] = useState('');
   const [detailItem, setDetailItem] = useState<TransactionRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<TransactionRecord | null>(null);
+  const [editItem, setEditItem] = useState<TransactionRecord | null>(null);
 
   const currentTransactions = localTransactions ?? appData.transactions;
-  const filtered = currentTransactions.filter((item) => matchesFilter(item.type, filter));
+  const filtered = currentTransactions
+    .filter((item) => matchesFilter(item.type, filter))
+    .filter((item) => matchesSearch(item, search));
 
   // Group by date
   const groups: { dateKey: string; dateLabel: string; items: TransactionRecord[] }[] = [];
@@ -145,6 +183,22 @@ export function LedgerPage({
           <p>按时间倒序查看每一笔收支与还款。</p>
         </div>
 
+        {/* Search bar */}
+        <div className="ledger-search">
+          <input
+            className="ledger-search__input"
+            type="text"
+            placeholder="搜索标题、备注、金额..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search ? (
+            <button type="button" className="ledger-search__clear" onClick={() => setSearch('')}>
+              清除
+            </button>
+          ) : null}
+        </div>
+
         {/* Filter bar */}
         <div className="ledger-filter">
           {FILTER_OPTIONS.map((opt) => (
@@ -163,12 +217,18 @@ export function LedgerPage({
           <div className="ledger-empty">
             <p className="ledger-empty__icon">📒</p>
             <p className="ledger-empty__title">
-              {currentTransactions.length === 0 ? '还没有流水记录' : '没有符合筛选条件的记录'}
+              {currentTransactions.length === 0
+                ? '还没有流水记录'
+                : search
+                  ? '没有匹配的搜索结果'
+                  : '没有符合筛选条件的记录'}
             </p>
             <p className="ledger-empty__hint">
               {currentTransactions.length === 0
                 ? '去手动记账或 AI 记账添加第一笔吧'
-                : '试试切换其他筛选条件'}
+                : search
+                  ? '试试其他关键词'
+                  : '试试切换其他筛选条件'}
             </p>
           </div>
         ) : (
@@ -218,17 +278,29 @@ export function LedgerPage({
                             rates={appData.settings}
                             align="end"
                           />
-                          <button
-                            type="button"
-                            className="button button--ghost ledger-delete-btn"
-                            aria-label={`删除 ${item.title}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteConfirm(item);
-                            }}
-                          >
-                            删除
-                          </button>
+                          <div className="ledger-list__actions">
+                            <button
+                              type="button"
+                              className="button button--ghost ledger-action-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditItem(item);
+                              }}
+                            >
+                              编辑
+                            </button>
+                            <button
+                              type="button"
+                              className="button button--ghost ledger-action-btn"
+                              aria-label={`删除 ${item.title}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirm(item);
+                              }}
+                            >
+                              删除
+                            </button>
+                          </div>
                         </div>
                       </li>
                     );
@@ -256,7 +328,7 @@ export function LedgerPage({
                 <span className="modal-detail-label">金额</span>
                 <span className={getDirectionInfo(detailItem.type).className}>
                   {getDirectionInfo(detailItem.type).sign}
-                  {detailItem.amount} {detailItem.currency === 'JPY' ? '円' : '元'}
+                  {formatCurrency(detailItem.amount, detailItem.currency)}
                 </span>
               </div>
               {detailItem.category ? (
@@ -302,15 +374,42 @@ export function LedgerPage({
                 </div>
               ) : null}
             </div>
-            <button
-              type="button"
-              className="button modal-close-btn"
-              onClick={() => setDetailItem(null)}
-            >
-              关闭
-            </button>
+            <div className="form-actions" style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                className="button"
+                onClick={() => {
+                  setEditItem(detailItem);
+                  setDetailItem(null);
+                }}
+              >
+                编辑此条
+              </button>
+              <button
+                type="button"
+                className="button button--ghost"
+                onClick={() => setDetailItem(null)}
+              >
+                关闭
+              </button>
+            </div>
           </div>
         </div>
+      ) : null}
+
+      {/* Edit Modal */}
+      {editItem ? (
+        <EditTransactionModal
+          item={editItem}
+          accounts={appData.accounts}
+          onSave={async () => {
+            setEditItem(null);
+            if (!transactions) await appData.reload();
+            setLocalTransactions(null);
+            setMessage('修改已保存');
+          }}
+          onClose={() => setEditItem(null)}
+        />
       ) : null}
 
       {/* Delete Confirmation Modal */}
@@ -319,8 +418,8 @@ export function LedgerPage({
           <div className="modal-content modal-content--small" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">确认删除</h3>
             <p className="modal-confirm-text">
-              确定要删除「{deleteConfirm.title}」这笔{getDirectionInfo(deleteConfirm.type).label}
-              记录吗？
+              确定要删除「{deleteConfirm.title}」这笔
+              {getDirectionInfo(deleteConfirm.type).label}记录吗？
             </p>
             <div className="modal-actions">
               <button
@@ -342,5 +441,197 @@ export function LedgerPage({
         </div>
       ) : null}
     </>
+  );
+}
+
+/* ─── Edit Transaction Modal ─────────────────────────────────────────── */
+
+function EditTransactionModal({
+  item,
+  accounts,
+  onSave,
+  onClose,
+}: {
+  item: TransactionRecord;
+  accounts: AccountBalance[];
+  onSave: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [type, setType] = useState<TransactionType>(item.type);
+  const [title, setTitle] = useState(item.title);
+  const [amount, setAmount] = useState(String(item.amount));
+  const [currency, setCurrency] = useState<'CNY' | 'JPY'>(item.currency);
+  const [sourceAccountName, setSourceAccountName] = useState(item.sourceAccountName);
+  const [targetAccountName, setTargetAccountName] = useState(item.targetAccountName);
+  const [category, setCategory] = useState(item.category);
+  const [note, setNote] = useState(item.note);
+  const [occurredAt, setOccurredAt] = useState(toDatetimeLocal(item.occurredAt));
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+
+  const assetAccounts = useMemo(() => accounts.filter((a) => a.kind === 'asset'), [accounts]);
+  const liabilityAccounts = useMemo(
+    () => accounts.filter((a) => a.kind === 'liability'),
+    [accounts],
+  );
+
+  const needsSource =
+    type === 'expense' ||
+    type === 'transfer' ||
+    type === 'credit_repayment' ||
+    type === 'credit_transfer';
+  const needsTarget =
+    type === 'income' ||
+    type === 'transfer' ||
+    type === 'credit_spending' ||
+    type === 'credit_repayment' ||
+    type === 'credit_transfer';
+
+  async function handleSave() {
+    const parsedAmount = Number(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setError('金额必须大于 0');
+      return;
+    }
+    const parsed = new Date(occurredAt);
+    const isoTime = Number.isNaN(parsed.getTime())
+      ? new Date().toISOString()
+      : parsed.toISOString();
+
+    const input: CreateTransactionInput = {
+      type,
+      title: title || '未命名',
+      amount: parsedAmount,
+      currency,
+      category,
+      note,
+      occurredAt: isoTime,
+      origin: item.origin,
+      aiInputText: item.aiInputText,
+    };
+    if (needsSource) input.sourceAccountName = sourceAccountName;
+    if (needsTarget) input.targetAccountName = targetAccountName;
+
+    setPending(true);
+    setError('');
+    try {
+      await updateExistingTransaction(item.id, input);
+      await onSave();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存失败');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content modal-content--large" onClick={(e) => e.stopPropagation()}>
+        <h3 className="modal-title">编辑交易</h3>
+        <div className="form-grid">
+          <label className="field">
+            <span>类型</span>
+            <select value={type} onChange={(e) => setType(e.target.value as TransactionType)}>
+              {TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>标题</span>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} />
+          </label>
+          <label className="field">
+            <span>金额</span>
+            <input
+              type="number"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>币种</span>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value as 'CNY' | 'JPY')}>
+              <option value="CNY">人民币</option>
+              <option value="JPY">日元</option>
+            </select>
+          </label>
+          {needsSource ? (
+            <label className="field">
+              <span>{type === 'credit_transfer' ? '信用账户' : '支付账户'}</span>
+              <select
+                value={sourceAccountName}
+                onChange={(e) => setSourceAccountName(e.target.value)}
+              >
+                <option value="">请选择</option>
+                {(type === 'credit_transfer' ? liabilityAccounts : assetAccounts).map((a) => (
+                  <option key={a.id} value={a.name}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {needsTarget ? (
+            <label className="field">
+              <span>
+                {type === 'income'
+                  ? '入账账户'
+                  : type === 'credit_spending'
+                    ? '信用账户'
+                    : '目标账户'}
+              </span>
+              <select
+                value={targetAccountName}
+                onChange={(e) => setTargetAccountName(e.target.value)}
+              >
+                <option value="">请选择</option>
+                {(type === 'credit_spending' || type === 'credit_repayment'
+                  ? liabilityAccounts
+                  : assetAccounts
+                ).map((a) => (
+                  <option key={a.id} value={a.name}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <label className="field">
+            <span>分类</span>
+            <input value={category} onChange={(e) => setCategory(e.target.value)} />
+          </label>
+          <label className="field">
+            <span>时间</span>
+            <input
+              type="datetime-local"
+              value={occurredAt}
+              onChange={(e) => setOccurredAt(e.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>备注</span>
+            <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+          </label>
+          {error ? <p className="status status--warning">{error}</p> : null}
+          <div className="form-actions">
+            <button
+              type="button"
+              className="button"
+              disabled={pending}
+              onClick={() => void handleSave()}
+            >
+              {pending ? '保存中...' : '保存修改'}
+            </button>
+            <button type="button" className="button button--ghost" onClick={onClose}>
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

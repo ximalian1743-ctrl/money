@@ -187,15 +187,66 @@ export async function getTransactions(): Promise<ApiTransactionRecord[]> {
   return records.map(toApiTransaction);
 }
 
+export async function updateExistingTransaction(
+  id: number,
+  input: CreateTransactionInput,
+): Promise<void> {
+  const accounts = await db.listAccounts();
+  const resolved = resolveTransaction(
+    {
+      type: input.type,
+      title: input.title,
+      amount: input.amount,
+      currency: input.currency,
+      sourceAccountName: input.sourceAccountName,
+      targetAccountName: input.targetAccountName,
+      note: input.note,
+      category: input.category,
+      occurredAt: input.occurredAt,
+      origin: input.origin,
+      aiInputText: input.aiInputText,
+    },
+    accounts,
+  );
+
+  await db.updateTransaction(id, {
+    type: input.type,
+    title: input.title,
+    note: input.note ?? '',
+    amount: input.amount,
+    currency: input.currency,
+    sourceAccountId: resolved.sourceAccountId,
+    targetAccountId: resolved.targetAccountId,
+    sourceAccountName: resolveName(accounts, resolved.sourceAccountId),
+    targetAccountName: resolveName(accounts, resolved.targetAccountId),
+    category: input.category ?? '',
+    occurredAt: input.occurredAt,
+    origin: input.origin ?? 'manual',
+    aiInputText: input.aiInputText ?? '',
+  });
+}
+
 export async function deleteTransaction(id: number): Promise<void> {
   const ok = await db.softDeleteTransaction(id);
   if (!ok) throw new Error('找不到该流水记录');
 }
 
+export async function fetchExchangeRate(): Promise<{ cnyToJpy: number; jpyToCny: number }> {
+  const response = await fetch('https://open.er-api.com/v6/latest/CNY');
+  if (!response.ok) throw new Error('汇率获取失败');
+  const data = (await response.json()) as { rates?: Record<string, number> };
+  const jpyRate = data.rates?.JPY;
+  if (!jpyRate) throw new Error('未找到 JPY 汇率数据');
+  return {
+    cnyToJpy: Math.round(jpyRate * 100) / 100,
+    jpyToCny: Math.round((1 / jpyRate) * 10000) / 10000,
+  };
+}
+
 export async function parseTransaction(input: {
   inputText: string;
   fallbackOccurredAt?: string;
-}): Promise<ParsedDraft> {
+}): Promise<ParsedDraft[]> {
   const [settings, accounts] = await Promise.all([db.getSettings(), db.listAccounts()]);
   return parseTransactionText({
     settings,
@@ -208,7 +259,7 @@ export async function parseTransaction(input: {
 export async function parseReceiptImage(input: {
   imageDataUrl: string;
   fallbackOccurredAt?: string;
-}): Promise<ParsedDraft> {
+}): Promise<ParsedDraft[]> {
   const [settings, accounts] = await Promise.all([db.getSettings(), db.listAccounts()]);
   return aiParseReceipt({
     settings,

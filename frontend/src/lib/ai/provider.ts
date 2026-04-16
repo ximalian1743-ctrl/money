@@ -78,6 +78,37 @@ export function extractJsonObject(text: string): Record<string, unknown> {
   }
 }
 
+export function extractJsonPayload(text: string): unknown {
+  // Try array first
+  const firstBracket = text.indexOf('[');
+  const lastBracket = text.lastIndexOf(']');
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+
+  // If array starts before object, try parsing as array
+  if (
+    firstBracket !== -1 &&
+    lastBracket > firstBracket &&
+    (firstBrace === -1 || firstBracket < firstBrace)
+  ) {
+    try {
+      return JSON.parse(text.slice(firstBracket, lastBracket + 1));
+    } catch {
+      // Fall through to object parsing
+    }
+  }
+
+  // Parse as single object
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error('AI 未返回有效 JSON');
+  }
+  try {
+    return JSON.parse(text.slice(firstBrace, lastBrace + 1));
+  } catch {
+    throw new Error('AI JSON 解析失败');
+  }
+}
+
 export function maskApiKey(key: string): string {
   if (!key) return '';
   if (key.length <= 8) return '*'.repeat(key.length);

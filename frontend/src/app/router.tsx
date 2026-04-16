@@ -15,6 +15,7 @@ const AiEntryPage = lazy(() =>
 const LedgerPage = lazy(() =>
   import('../pages/LedgerPage').then((m) => ({ default: m.LedgerPage })),
 );
+const StatsPage = lazy(() => import('../pages/StatsPage').then((m) => ({ default: m.StatsPage })));
 const SettingsPage = lazy(() =>
   import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 );
@@ -67,6 +68,14 @@ export const router = createBrowserRouter([
         element: (
           <RouteSuspense>
             <LedgerPage />
+          </RouteSuspense>
+        ),
+      },
+      {
+        path: 'stats',
+        element: (
+          <RouteSuspense>
+            <StatsPage />
           </RouteSuspense>
         ),
       },

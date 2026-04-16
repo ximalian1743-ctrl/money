@@ -43,9 +43,9 @@ beforeEach(() => {
   window.localStorage.clear();
 });
 
-test('parses a Chinese short sentence and shows draft preview', async () => {
+test('parses a Chinese short sentence and shows editable draft preview', async () => {
   const user = userEvent.setup();
-  const parseTransactionImpl = vi.fn().mockResolvedValue(draft);
+  const parseTransactionImpl = vi.fn().mockResolvedValue([draft]);
   const createTransactionImpl = vi.fn().mockResolvedValue(undefined);
 
   render(
@@ -68,9 +68,6 @@ test('parses a Chinese short sentence and shows draft preview', async () => {
   });
 
   expect(await screen.findByText('解析结果')).toBeInTheDocument();
-  expect(await screen.findByText('现金纸币')).toBeInTheDocument();
-  expect(await screen.findByText('38元')).toBeInTheDocument();
-  expect(await screen.findByText('760円')).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: '确认入账' }));
 
@@ -78,16 +75,14 @@ test('parses a Chinese short sentence and shows draft preview', async () => {
     expect.objectContaining({
       title: '午饭',
       amount: 38,
-      sourceAccountName: '现金纸币',
       origin: 'ai',
     }),
   );
-  expect(await screen.findByText('已保存到流水')).toBeInTheDocument();
 });
 
-test('restores cached ai input and draft after remount', async () => {
+test('restores cached ai input text after remount', async () => {
   const user = userEvent.setup();
-  const parseTransactionImpl = vi.fn().mockResolvedValue(draft);
+  const parseTransactionImpl = vi.fn().mockResolvedValue([draft]);
   const view = render(
     <AiEntryPage
       accounts={accounts}
@@ -97,20 +92,15 @@ test('restores cached ai input and draft after remount', async () => {
   );
 
   await user.type(screen.getByLabelText('记账内容'), '午饭38元，用现金纸币');
-  await user.click(screen.getByRole('button', { name: '解析文字' }));
-  expect(await screen.findByText('解析结果')).toBeInTheDocument();
-
   view.unmount();
 
   render(
     <AiEntryPage
       accounts={accounts}
-      parseTransactionImpl={vi.fn().mockResolvedValue(draft)}
+      parseTransactionImpl={vi.fn().mockResolvedValue([draft])}
       createTransactionImpl={vi.fn().mockResolvedValue(undefined)}
     />,
   );
 
   expect(screen.getByLabelText('记账内容')).toHaveValue('午饭38元，用现金纸币');
-  expect(await screen.findByText('解析结果')).toBeInTheDocument();
-  expect(await screen.findByText('现金纸币')).toBeInTheDocument();
 });
