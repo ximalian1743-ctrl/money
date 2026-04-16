@@ -30,9 +30,9 @@ export function OverviewPage() {
   } | null>(null);
 
   function handleAccountClick(accountName: string) {
-    const related = transactions.filter(
-      (t) => t.sourceAccountName === accountName || t.targetAccountName === accountName,
-    ).slice(0, 10);
+    const related = transactions
+      .filter((t) => t.sourceAccountName === accountName || t.targetAccountName === accountName)
+      .slice(0, 10);
     setWalletDetail({ name: accountName, items: related });
   }
 
@@ -117,7 +117,8 @@ export function OverviewPage() {
                     <span className="recent-tx-item__time">{formatDateTime(item.occurredAt)}</span>
                   </div>
                   <span className={`recent-tx-item__amount ${dir.className}`}>
-                    {dir.sign}{formatCurrency(item.amount, item.currency)}
+                    {dir.sign}
+                    {formatCurrency(item.amount, item.currency)}
                   </span>
                 </li>
               );
@@ -143,17 +144,24 @@ export function OverviewPage() {
                     <li key={item.id} className="recent-tx-item">
                       <div className="recent-tx-item__left">
                         <strong>{item.title}</strong>
-                        <span className="recent-tx-item__time">{formatDateTime(item.occurredAt)}</span>
+                        <span className="recent-tx-item__time">
+                          {formatDateTime(item.occurredAt)}
+                        </span>
                       </div>
                       <span className={`recent-tx-item__amount ${dir.className}`}>
-                        {dir.sign}{formatCurrency(item.amount, item.currency)}
+                        {dir.sign}
+                        {formatCurrency(item.amount, item.currency)}
                       </span>
                     </li>
                   );
                 })}
               </ul>
             )}
-            <button type="button" className="button modal-close-btn" onClick={() => setWalletDetail(null)}>
+            <button
+              type="button"
+              className="button modal-close-btn"
+              onClick={() => setWalletDetail(null)}
+            >
               关闭
             </button>
           </div>

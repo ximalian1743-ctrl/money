@@ -14,18 +14,18 @@ interface LedgerPageProps {
 type FilterType = 'all' | 'income' | 'expense' | 'transfer' | 'credit';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  '餐饮': '#e67e22',
-  '交通': '#3498db',
-  '购物': '#9b59b6',
-  '娱乐': '#e74c3c',
-  '住房': '#1abc9c',
-  '医疗': '#e84393',
-  '教育': '#00b894',
-  '工资': '#27ae60',
-  '转账': '#2980b9',
-  '通讯': '#f39c12',
-  '日用': '#636e72',
-  '服饰': '#fd79a8',
+  餐饮: '#e67e22',
+  交通: '#3498db',
+  购物: '#9b59b6',
+  娱乐: '#e74c3c',
+  住房: '#1abc9c',
+  医疗: '#e84393',
+  教育: '#00b894',
+  工资: '#27ae60',
+  转账: '#2980b9',
+  通讯: '#f39c12',
+  日用: '#636e72',
+  服饰: '#fd79a8',
 };
 
 function getCategoryColor(category: string): string {
@@ -39,7 +39,11 @@ function getCategoryColor(category: string): string {
   return `hsl(${hue}, 55%, 50%)`;
 }
 
-function getDirectionInfo(type: TransactionType): { sign: string; className: string; label: string } {
+function getDirectionInfo(type: TransactionType): {
+  sign: string;
+  className: string;
+  label: string;
+} {
   switch (type) {
     case 'income':
       return { sign: '+', className: 'ledger-amount--income', label: '收入' };
@@ -63,7 +67,8 @@ function matchesFilter(type: TransactionType, filter: FilterType): boolean {
   if (filter === 'income') return type === 'income';
   if (filter === 'expense') return type === 'expense';
   if (filter === 'transfer') return type === 'transfer';
-  if (filter === 'credit') return type === 'credit_spending' || type === 'credit_repayment' || type === 'credit_transfer';
+  if (filter === 'credit')
+    return type === 'credit_spending' || type === 'credit_repayment' || type === 'credit_transfer';
   return true;
 }
 
@@ -161,7 +166,9 @@ export function LedgerPage({
               {currentTransactions.length === 0 ? '还没有流水记录' : '没有符合筛选条件的记录'}
             </p>
             <p className="ledger-empty__hint">
-              {currentTransactions.length === 0 ? '去手动记账或 AI 记账添加第一笔吧' : '试试切换其他筛选条件'}
+              {currentTransactions.length === 0
+                ? '去手动记账或 AI 记账添加第一笔吧'
+                : '试试切换其他筛选条件'}
             </p>
           </div>
         ) : (
@@ -179,7 +186,9 @@ export function LedgerPage({
                         onClick={() => setDetailItem(item)}
                         role="button"
                         tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === 'Enter') setDetailItem(item); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') setDetailItem(item);
+                        }}
                       >
                         <div className="ledger-list__left">
                           <div className="ledger-list__title-row">
@@ -187,7 +196,10 @@ export function LedgerPage({
                             {item.category ? (
                               <span
                                 className="ledger-category-badge"
-                                style={{ backgroundColor: getCategoryColor(item.category) + '20', color: getCategoryColor(item.category) }}
+                                style={{
+                                  backgroundColor: getCategoryColor(item.category) + '20',
+                                  color: getCategoryColor(item.category),
+                                }}
                               >
                                 {item.category}
                               </span>
@@ -199,9 +211,7 @@ export function LedgerPage({
                           <p>{item.sourceAccountName || item.targetAccountName}</p>
                         </div>
                         <div className="ledger-list__meta">
-                          <span className={`ledger-amount ${dir.className}`}>
-                            {dir.sign}
-                          </span>
+                          <span className={`ledger-amount ${dir.className}`}>{dir.sign}</span>
                           <NativeDualCurrencyAmount
                             amount={item.amount}
                             currency={item.currency}
@@ -212,7 +222,10 @@ export function LedgerPage({
                             type="button"
                             className="button button--ghost ledger-delete-btn"
                             aria-label={`删除 ${item.title}`}
-                            onClick={(e) => { e.stopPropagation(); setDeleteConfirm(item); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirm(item);
+                            }}
                           >
                             删除
                           </button>
@@ -242,7 +255,8 @@ export function LedgerPage({
               <div className="modal-detail-row">
                 <span className="modal-detail-label">金额</span>
                 <span className={getDirectionInfo(detailItem.type).className}>
-                  {getDirectionInfo(detailItem.type).sign}{detailItem.amount} {detailItem.currency === 'JPY' ? '円' : '元'}
+                  {getDirectionInfo(detailItem.type).sign}
+                  {detailItem.amount} {detailItem.currency === 'JPY' ? '円' : '元'}
                 </span>
               </div>
               {detailItem.category ? (
@@ -250,7 +264,10 @@ export function LedgerPage({
                   <span className="modal-detail-label">类别</span>
                   <span
                     className="ledger-category-badge"
-                    style={{ backgroundColor: getCategoryColor(detailItem.category) + '20', color: getCategoryColor(detailItem.category) }}
+                    style={{
+                      backgroundColor: getCategoryColor(detailItem.category) + '20',
+                      color: getCategoryColor(detailItem.category),
+                    }}
                   >
                     {detailItem.category}
                   </span>
@@ -285,7 +302,11 @@ export function LedgerPage({
                 </div>
               ) : null}
             </div>
-            <button type="button" className="button modal-close-btn" onClick={() => setDetailItem(null)}>
+            <button
+              type="button"
+              className="button modal-close-btn"
+              onClick={() => setDetailItem(null)}
+            >
               关闭
             </button>
           </div>
@@ -298,7 +319,8 @@ export function LedgerPage({
           <div className="modal-content modal-content--small" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">确认删除</h3>
             <p className="modal-confirm-text">
-              确定要删除「{deleteConfirm.title}」这笔{getDirectionInfo(deleteConfirm.type).label}记录吗？
+              确定要删除「{deleteConfirm.title}」这笔{getDirectionInfo(deleteConfirm.type).label}
+              记录吗？
             </p>
             <div className="modal-actions">
               <button

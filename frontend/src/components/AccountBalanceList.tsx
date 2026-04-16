@@ -205,7 +205,13 @@ export function AccountBalanceList({
                   onClick={onAccountClick ? () => onAccountClick(account.name) : undefined}
                   role={onAccountClick ? 'button' : undefined}
                   tabIndex={onAccountClick ? 0 : undefined}
-                  onKeyDown={onAccountClick ? (e) => { if (e.key === 'Enter') onAccountClick(account.name); } : undefined}
+                  onKeyDown={
+                    onAccountClick
+                      ? (e) => {
+                          if (e.key === 'Enter') onAccountClick(account.name);
+                        }
+                      : undefined
+                  }
                 >
                   {account.name}
                 </strong>
