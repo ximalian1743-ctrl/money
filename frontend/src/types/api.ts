@@ -63,6 +63,8 @@ export interface TransactionRecord {
   targetAccountName: string;
   category: string;
   occurredAt: string;
+  origin: 'manual' | 'ai';
+  aiInputText: string;
 }
 
 export interface CreateTransactionInput {

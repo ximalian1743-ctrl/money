@@ -68,7 +68,7 @@ function loadPersistedAiEntryState(): PersistedAiEntryState {
   }
 }
 
-function mapDraftToTransaction(draft: ParsedDraft): CreateTransactionInput {
+function mapDraftToTransaction(draft: ParsedDraft, originalInput: string): CreateTransactionInput {
   return {
     type: draft.type,
     title: draft.title,
@@ -91,7 +91,7 @@ function mapDraftToTransaction(draft: ParsedDraft): CreateTransactionInput {
     note: draft.note,
     occurredAt: draft.occurredAt,
     origin: 'ai',
-    aiInputText: draft.title,
+    aiInputText: originalInput,
   };
 }
 
@@ -183,7 +183,7 @@ export function AiEntryPage({
     }
 
     await run(async () => {
-      await createTransactionImpl(mapDraftToTransaction(draft));
+      await createTransactionImpl(mapDraftToTransaction(draft, inputText));
       await appData.reload();
     }, '已保存到流水');
     setDraft(null);

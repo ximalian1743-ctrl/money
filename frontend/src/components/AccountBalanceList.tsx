@@ -9,6 +9,7 @@ interface AccountBalanceListProps {
   accounts: AccountBalance[];
   rates: ExchangeRates;
   onAccountUpdated?: () => void | Promise<void>;
+  onAccountClick?: (accountName: string) => void;
   updateInitialBalanceImpl?: (id: number, initialBalance: number) => Promise<void>;
   updateAccountDetailsImpl?: (
     id: number,
@@ -111,6 +112,7 @@ export function AccountBalanceList({
   accounts,
   rates,
   onAccountUpdated,
+  onAccountClick,
   updateInitialBalanceImpl = updateAccountInitialBalance,
   updateAccountDetailsImpl = updateAccountDetails,
 }: AccountBalanceListProps) {
@@ -198,7 +200,15 @@ export function AccountBalanceList({
           >
             <div className="account-list__header">
               <div className="account-list__title-row">
-                <strong className="account-list__name">{account.name}</strong>
+                <strong
+                  className={`account-list__name${onAccountClick ? ' account-list__name--clickable' : ''}`}
+                  onClick={onAccountClick ? () => onAccountClick(account.name) : undefined}
+                  role={onAccountClick ? 'button' : undefined}
+                  tabIndex={onAccountClick ? 0 : undefined}
+                  onKeyDown={onAccountClick ? (e) => { if (e.key === 'Enter') onAccountClick(account.name); } : undefined}
+                >
+                  {account.name}
+                </strong>
                 {isCredit ? <span className="account-badge">信用卡</span> : null}
               </div>
 

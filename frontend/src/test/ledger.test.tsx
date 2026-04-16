@@ -17,6 +17,8 @@ const transactions: TransactionRecord[] = [
     targetAccountName: '',
     category: '餐饮',
     occurredAt: '2026-04-14T12:00:00.000Z',
+    origin: 'manual',
+    aiInputText: '',
   },
 ];
 
@@ -31,6 +33,10 @@ test('deletes a transaction from ledger list', async () => {
   expect(screen.getByText('760円')).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: '删除 午饭' }));
+
+  // Confirmation dialog should appear
+  expect(screen.getByRole('heading', { name: '确认删除' })).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: '确认删除' }));
 
   expect(deleteTransactionImpl).toHaveBeenCalledWith(1);
 });

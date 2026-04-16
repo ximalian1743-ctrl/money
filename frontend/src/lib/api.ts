@@ -141,6 +141,8 @@ function toApiTransaction(record: TransactionRecord): ApiTransactionRecord {
     targetAccountName: record.targetAccountName,
     category: record.category,
     occurredAt: record.occurredAt,
+    origin: record.origin,
+    aiInputText: record.aiInputText,
   };
 }
 
