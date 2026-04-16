@@ -7,6 +7,7 @@
 ## 2026-04-16 · 4 轮产品化升级
 
 ### Round 4 — 产品化 UI 大改（10 项）
+
 **Commit:** `0c6dd4e` — CI ✓ deployed
 
 站在成熟产品设计师角度的结构性重构，参考 Cash App / Revolut / Material。
@@ -27,6 +28,7 @@
 ---
 
 ### Round 3 — 问题视角修复（10 项）
+
 **Commit:** `600f7be`
 
 基于实际使用痛点的针对性修复。
@@ -47,6 +49,7 @@
 ---
 
 ### Round 2 — 功能追加（10 项）
+
 **Commit:** `776c4bf` + `bf5dc3a`（ESLint 修复）
 
 把产品从"记账 demo"升级为"完整记账产品"。
@@ -67,6 +70,7 @@
 ---
 
 ### Round 1 — UI 功能优化（10 项）
+
 **Commit:** `86cae42` + `a6c57fc`（Prettier 修复）
 
 第一轮用户提出 3 条 + 我补充 7 条。
@@ -97,9 +101,9 @@
 
 ## 项目统计
 
-| 指标 | 值 |
-|------|-----|
-| 升级轮次 | 4 轮（Round 1-4） |
-| 新增功能点 | 40 项 |
-| 测试 | TypeScript ✓ / 10/10 unit tests ✓ / Prettier ✓ / ESLint ✓ |
-| 部署 | Cloudflare Pages，每次 commit 自动部署 |
+| 指标       | 值                                                        |
+| ---------- | --------------------------------------------------------- |
+| 升级轮次   | 4 轮（Round 1-4）                                         |
+| 新增功能点 | 40 项                                                     |
+| 测试       | TypeScript ✓ / 10/10 unit tests ✓ / Prettier ✓ / ESLint ✓ |
+| 部署       | Cloudflare Pages，每次 commit 自动部署                    |
