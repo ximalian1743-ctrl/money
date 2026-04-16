@@ -126,18 +126,12 @@ export function AiEntryPage({
     setDrafts((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function handleConfirmAll() {
-    // Confirm all drafts sequentially — each needs user's current edits
-    // This button is a convenience; individual cards handle their own edits
-    setMessage('请逐条确认每笔交易');
-  }
-
   return (
     <section className="stack">
       <div className="panel form-grid">
         <div className="panel__header">
           <h2>AI 记账</h2>
-          <p>输入中文短句，支持一次多笔，如"午饭38元现金，地铁3元西瓜卡"。</p>
+          <p>输入中文短句，支持一次多笔，如&ldquo;午饭38元现金，地铁3元西瓜卡&rdquo;。</p>
         </div>
 
         <label className="field">

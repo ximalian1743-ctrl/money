@@ -131,7 +131,6 @@ export function StatsPage() {
     () => availableMonths[0] || getMonthKey(new Date()),
   );
   const [budgets, setBudgets] = useState<BudgetMap>(loadBudgets);
-  const [editingBudget, setEditingBudget] = useState(false);
   const [budgetCategory, setBudgetCategory] = useState('');
   const [budgetAmount, setBudgetAmount] = useState('');
 
