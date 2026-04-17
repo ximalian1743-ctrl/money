@@ -22,9 +22,11 @@ export function ManualEntryPage({
   const { pending, run } = useMutationState();
   const currentAccounts = accounts ?? appData.accounts;
 
-  async function handleSubmit(input: CreateTransactionInput) {
+  async function handleSubmit(inputs: CreateTransactionInput[]) {
     await run(async () => {
-      await createTransactionImpl(input);
+      for (const input of inputs) {
+        await createTransactionImpl(input);
+      }
       await appData.reload();
     }, '保存成功');
     toast('保存成功', 'success');

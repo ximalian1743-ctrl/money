@@ -5,7 +5,7 @@ import type { AccountBalance, CreateTransactionInput, TransactionType } from '..
 interface TransactionFormProps {
   accounts: AccountBalance[];
   submitLabel: string;
-  onSubmit: (input: CreateTransactionInput) => Promise<void>;
+  onSubmit: (inputs: CreateTransactionInput[]) => Promise<void>;
 }
 
 function getDefaultSourceAccount(accounts: AccountBalance[]) {
@@ -14,6 +14,13 @@ function getDefaultSourceAccount(accounts: AccountBalance[]) {
 
 function getDefaultLiabilityAccount(accounts: AccountBalance[]) {
   return accounts.find((account) => account.kind === 'liability')?.name ?? '';
+}
+
+function getDefaultCoinAccount(accounts: AccountBalance[]) {
+  return (
+    accounts.find((account) => account.kind === 'asset' && account.name.includes('硬币'))?.name ??
+    ''
+  );
 }
 
 function toDatetimeLocalValue(date = new Date()): string {
@@ -41,6 +48,11 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
   const [category, setCategory] = useState('');
   const [note, setNote] = useState('');
   const [occurredAt, setOccurredAt] = useState(toDatetimeLocalValue());
+  const [changeEnabled, setChangeEnabled] = useState(false);
+  const [paidAmount, setPaidAmount] = useState('0');
+  const [changeBill, setChangeBill] = useState('0');
+  const [changeCoin, setChangeCoin] = useState('0');
+  const [coinAccountName, setCoinAccountName] = useState(getDefaultCoinAccount(accounts));
 
   const assetAccounts = useMemo(
     () => accounts.filter((account) => account.kind === 'asset'),
@@ -50,6 +62,19 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
     () => accounts.filter((account) => account.kind === 'liability'),
     [accounts],
   );
+
+  const paidNum = Number(paidAmount) || 0;
+  const billChangeNum = Number(changeBill) || 0;
+  const coinChangeNum = Number(changeCoin) || 0;
+  const computedExpense = Math.max(0, paidNum - billChangeNum - coinChangeNum);
+  const changeMode = type === 'expense' && changeEnabled;
+
+  useEffect(() => {
+    if (!coinAccountName && assetAccounts.length) {
+      const coin = getDefaultCoinAccount(accounts);
+      if (coin) setCoinAccountName(coin);
+    }
+  }, [accounts, assetAccounts, coinAccountName]);
 
   useEffect(() => {
     if (type === 'credit_transfer') {
@@ -77,15 +102,16 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const normalizedAmount = Number(amount);
+    const effectiveAmount = changeMode ? computedExpense : Number(amount);
+    const occurredIso = toIsoString(occurredAt);
     const payload: CreateTransactionInput = {
       type,
       title,
-      amount: normalizedAmount,
+      amount: effectiveAmount,
       currency,
       category,
       note,
-      occurredAt: toIsoString(occurredAt),
+      occurredAt: occurredIso,
     };
 
     if (type === 'expense') {
@@ -115,7 +141,31 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
       payload.targetAccountName = targetAccountName || getDefaultSourceAccount(accounts);
     }
 
-    await onSubmit(payload);
+    const inputs: CreateTransactionInput[] = [payload];
+
+    if (changeMode && coinChangeNum > 0) {
+      const sourceName = payload.sourceAccountName ?? getDefaultSourceAccount(accounts);
+      const coinName = coinAccountName || getDefaultCoinAccount(accounts);
+      if (!coinName) {
+        throw new Error('缺少硬币账户，请在账户管理中创建一个名称包含“硬币”的资产账户');
+      }
+      if (coinName === sourceName) {
+        throw new Error('硬币账户不能与支付账户相同');
+      }
+      inputs.push({
+        type: 'transfer',
+        title: title ? `${title}·找零硬币` : '找零硬币',
+        amount: coinChangeNum,
+        currency,
+        category,
+        note,
+        occurredAt: occurredIso,
+        sourceAccountName: sourceName,
+        targetAccountName: coinName,
+      });
+    }
+
+    await onSubmit(inputs);
   }
 
   return (
@@ -163,10 +213,71 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
         <input
           aria-label="金额"
           type="number"
-          value={amount}
+          value={changeMode ? String(computedExpense) : amount}
           onChange={(event) => setAmount(event.target.value)}
+          readOnly={changeMode}
         />
       </label>
+
+      {type === 'expense' ? (
+        <label className="field field--inline">
+          <input
+            aria-label="使用现金找零"
+            type="checkbox"
+            checked={changeEnabled}
+            onChange={(event) => setChangeEnabled(event.target.checked)}
+          />
+          <span>使用现金支付（含找零）</span>
+        </label>
+      ) : null}
+
+      {changeMode ? (
+        <div className="panel">
+          <p>按收银台实际情况填写：付款 − 找零（纸币 + 硬币）= 实际支出 {computedExpense}</p>
+          <label className="field">
+            <span>付款金额</span>
+            <input
+              aria-label="付款金额"
+              type="number"
+              value={paidAmount}
+              onChange={(event) => setPaidAmount(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>找零·纸币</span>
+            <input
+              aria-label="找零纸币"
+              type="number"
+              value={changeBill}
+              onChange={(event) => setChangeBill(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>找零·硬币</span>
+            <input
+              aria-label="找零硬币"
+              type="number"
+              value={changeCoin}
+              onChange={(event) => setChangeCoin(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>硬币账户</span>
+            <select
+              aria-label="硬币账户"
+              value={coinAccountName}
+              onChange={(event) => setCoinAccountName(event.target.value)}
+            >
+              <option value="">（请选择）</option>
+              {assetAccounts.map((account) => (
+                <option key={account.id} value={account.name}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      ) : null}
 
       <label className="field">
         <span>币种</span>
