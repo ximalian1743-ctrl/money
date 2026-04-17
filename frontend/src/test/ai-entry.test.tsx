@@ -16,6 +16,15 @@ const accounts: AccountBalance[] = [
     creditLimit: 0,
   },
   {
+    id: 3,
+    name: '现金硬币',
+    kind: 'asset',
+    currency: 'JPY',
+    balance: 0,
+    initialBalance: 0,
+    creditLimit: 0,
+  },
+  {
     id: 8,
     name: 'PayPay 信用卡',
     kind: 'liability',
@@ -76,6 +85,74 @@ test('parses a Chinese short sentence and shows editable draft preview', async (
       title: '午饭',
       amount: 38,
       origin: 'ai',
+    }),
+  );
+});
+
+test('accepts two drafts for compound change scenario and saves both', async () => {
+  const user = userEvent.setup();
+  const expenseDraft: ParsedDraft = {
+    type: 'expense',
+    title: '超市买菜',
+    amount: 5755,
+    currency: 'JPY',
+    accountName: '现金纸币',
+    targetAccountName: '',
+    category: '餐饮',
+    occurredAt: '2026-04-17T18:00:00.000Z',
+    note: '',
+    warnings: [],
+  };
+  const coinChangeDraft: ParsedDraft = {
+    type: 'transfer',
+    title: '超市买菜·找零硬币',
+    amount: 245,
+    currency: 'JPY',
+    accountName: '现金纸币',
+    targetAccountName: '现金硬币',
+    category: '找零',
+    occurredAt: '2026-04-17T18:00:00.000Z',
+    note: '',
+    warnings: [],
+  };
+  const parseTransactionImpl = vi.fn().mockResolvedValue([expenseDraft, coinChangeDraft]);
+  const createTransactionImpl = vi.fn().mockResolvedValue(undefined);
+
+  render(
+    <AiEntryPage
+      accounts={accounts}
+      parseTransactionImpl={parseTransactionImpl}
+      createTransactionImpl={createTransactionImpl}
+    />,
+  );
+
+  await user.type(screen.getByLabelText('记账内容'), '买菜花了5755日元，找零硬币245');
+  await user.click(screen.getByRole('button', { name: '解析文字' }));
+
+  expect(await screen.findByText('共解析出 2 笔交易，逐条确认或修改后入账')).toBeInTheDocument();
+
+  const confirmButtons = await screen.findAllByRole('button', { name: '确认入账' });
+  await user.click(confirmButtons[0]);
+  const confirmButtons2 = await screen.findAllByRole('button', { name: '确认入账' });
+  await user.click(confirmButtons2[0]);
+
+  expect(createTransactionImpl).toHaveBeenCalledTimes(2);
+  expect(createTransactionImpl).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({
+      type: 'expense',
+      amount: 5755,
+      sourceAccountName: '现金纸币',
+    }),
+  );
+  expect(createTransactionImpl).toHaveBeenNthCalledWith(
+    2,
+    expect.objectContaining({
+      type: 'transfer',
+      amount: 245,
+      sourceAccountName: '现金纸币',
+      targetAccountName: '现金硬币',
+      category: '找零',
     }),
   );
 });

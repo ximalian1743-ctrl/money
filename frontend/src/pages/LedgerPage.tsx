@@ -46,7 +46,10 @@ function getCategoryColor(category: string): string {
   return `hsl(${hue}, 55%, 50%)`;
 }
 
-function getDirectionInfo(type: TransactionType): {
+function getDirectionInfo(
+  type: TransactionType,
+  category?: string,
+): {
   sign: string;
   className: string;
   label: string;
@@ -61,6 +64,9 @@ function getDirectionInfo(type: TransactionType): {
     case 'credit_repayment':
       return { sign: '-', className: 'ledger-amount--transfer', label: '信用还款' };
     case 'transfer':
+      if (category === '找零') {
+        return { sign: '⇋', className: 'ledger-amount--transfer', label: '找零' };
+      }
       return { sign: '↔', className: 'ledger-amount--transfer', label: '转账' };
     case 'credit_transfer':
       return { sign: '↔', className: 'ledger-amount--transfer', label: '信用转账' };
@@ -233,7 +239,7 @@ export function LedgerPage({
                 <div className="ledger-date-header">{group.dateLabel}</div>
                 <ul className="ledger-group__items">
                   {group.items.map((item) => {
-                    const dir = getDirectionInfo(item.type);
+                    const dir = getDirectionInfo(item.type, item.category);
                     return (
                       <li
                         key={item.id}
@@ -359,12 +365,12 @@ export function LedgerPage({
             <div className="modal-detail-grid">
               <div className="modal-detail-row">
                 <span className="modal-detail-label">类型</span>
-                <span>{getDirectionInfo(detailItem.type).label}</span>
+                <span>{getDirectionInfo(detailItem.type, detailItem.category).label}</span>
               </div>
               <div className="modal-detail-row">
                 <span className="modal-detail-label">金额</span>
-                <span className={getDirectionInfo(detailItem.type).className}>
-                  {getDirectionInfo(detailItem.type).sign}
+                <span className={getDirectionInfo(detailItem.type, detailItem.category).className}>
+                  {getDirectionInfo(detailItem.type, detailItem.category).sign}
                   {formatCurrency(detailItem.amount, detailItem.currency)}
                 </span>
               </div>
@@ -433,7 +439,7 @@ export function LedgerPage({
           <>
             <p className="modal-confirm-text">
               确定要删除「{deleteConfirm.title}」这笔
-              {getDirectionInfo(deleteConfirm.type).label}记录吗？
+              {getDirectionInfo(deleteConfirm.type, deleteConfirm.category).label}记录吗？
             </p>
             <div className="modal-actions">
               <button

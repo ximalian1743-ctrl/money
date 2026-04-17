@@ -8,6 +8,8 @@ import type {
 import { deriveModelsUrl, extractJsonPayload, extractTextPayload } from './provider';
 
 function buildSystemPrompt(accountNames: string[], fallbackOccurredAt?: string): string {
+  const billAccount = accountNames.find((n) => n.includes('纸币')) ?? '现金纸币';
+  const coinAccount = accountNames.find((n) => n.includes('硬币')) ?? '现金硬币';
   const lines = [
     '你是私人记账助手。',
     '请把用户输入解析成严格 JSON，不要输出额外文字。',
@@ -26,6 +28,29 @@ function buildSystemPrompt(accountNames: string[], fallbackOccurredAt?: string):
     '如果无法确定账户，请填空字符串并在 warnings 中说明。',
     '如果用户输入包含多笔交易（如"午饭38元，地铁3元"），请返回 JSON 数组，每笔交易一个对象。',
     '如果只有一笔交易，返回单个 JSON 对象即可。',
+    '',
+    '【现金找零场景 — 核心规则，务必严格执行】',
+    `用户在日本超市/便利店用纸币付款（账户"${billAccount}"），店家找回纸币+硬币（硬币进"${coinAccount}"）。`,
+    '识别关键词：找零 / 找回 / 找我 / 找给 / 找了 / おつり / change。',
+    '守恒恒等式：付款金额 = 实际支出 + 找零纸币 + 找零硬币。',
+    '分辨纸币 vs 硬币找零：',
+    '  · 出现"硬币/こうか/小钱/零钱/coin/¥1/¥5/¥10/¥50/¥100/¥500"→ 硬币找零',
+    '  · 出现"纸币/千/千元/1000/2000/5000/张/枚/bill"→ 纸币找零',
+    '  · 未指定类型时默认全部为纸币找零（日本最常见）',
+    '输出格式（找零场景必须严格按此）：',
+    '  返回 JSON 数组。',
+    `  第 1 条 = expense：amount=实际支出（已扣除所有找零），accountName="${billAccount}"（或用户指定的纸币/付款账户）。`,
+    `  第 2 条仅在"找零硬币>0"时输出 = transfer：amount=找零硬币金额，accountName="${billAccount}"，targetAccountName="${coinAccount}"，category="找零"，title="<原title>·找零硬币"。`,
+    '  找零纸币回到同一纸币账户，为自抵消项，不要单独开一笔流水。',
+    '',
+    '【找零场景示例】',
+    `① 用户："买菜花了5755日元，找零硬币245" → [{type:"expense",title:"买菜",amount:5755,currency:"JPY",accountName:"${billAccount}",category:"餐饮",...},{type:"transfer",title:"买菜·找零硬币",amount:245,currency:"JPY",accountName:"${billAccount}",targetAccountName:"${coinAccount}",category:"找零",...}]`,
+    `② 用户："付了1万纸币，店家找我4245日元，其中245是硬币" → 实际支出=10000-4245=5755 → [{type:"expense",amount:5755,accountName:"${billAccount}",...},{type:"transfer",amount:245,accountName:"${billAccount}",targetAccountName:"${coinAccount}",category:"找零",...}]`,
+    `③ 用户："付1万买菜6360，找回3张一千和640硬币" → [{type:"expense",amount:6360,...},{type:"transfer",amount:640,category:"找零",...}]`,
+    `④ 用户："花了6000，找回300硬币" → [{type:"expense",amount:6000,...},{type:"transfer",amount:300,category:"找零",...}]`,
+    `⑤ 用户："付1000找了200" → 未说硬币，默认纸币找零 → 只输出 [{type:"expense",amount:800,accountName:"${billAccount}",...}]（找零纸币自抵消）。`,
+    `⑥ 用户："买菜800" → 无找零关键词 → 单条 [{type:"expense",amount:800,...}]。`,
+    '输出前务必核对：付款金额 = 支出金额 + 数组中所有 transfer(category="找零") 之和 + 未列出的纸币找零。',
   ];
   if (fallbackOccurredAt) {
     lines.push(

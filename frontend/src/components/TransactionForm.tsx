@@ -157,7 +157,7 @@ export function TransactionForm({ accounts, submitLabel, onSubmit }: Transaction
         title: title ? `${title}·找零硬币` : '找零硬币',
         amount: coinChangeNum,
         currency,
-        category,
+        category: '找零',
         note,
         occurredAt: occurredIso,
         sourceAccountName: sourceName,
