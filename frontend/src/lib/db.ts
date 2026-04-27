@@ -80,13 +80,16 @@ const DEFAULT_ACCOUNTS: ReadonlyArray<Omit<AccountRecord, 'id' | 'createdAt' | '
   },
 ];
 
+export const DEFAULT_AI_ENDPOINT = 'https://api.ximalian.cc.cd/v1/chat/completions';
+export const DEFAULT_AI_MODEL = 'claude-sonnet-4-6';
+
 export const DEFAULT_SETTINGS: SettingsRecord = {
   cnyToJpyRate: 20,
   jpyToCnyRate: 0.05,
-  aiEndpointUrl: '',
+  aiEndpointUrl: DEFAULT_AI_ENDPOINT,
   aiApiKey: '',
   aiProtocol: 'chat_completions',
-  aiModel: '',
+  aiModel: DEFAULT_AI_MODEL,
 };
 
 interface MoneyDbSchema {
@@ -260,6 +263,8 @@ export async function getSettings(): Promise<SettingsRecord> {
   if (!record) return DEFAULT_SETTINGS;
   const { id: _id, ...rest } = record;
   void _id;
+  if (!rest.aiModel) rest.aiModel = DEFAULT_AI_MODEL;
+  if (!rest.aiEndpointUrl) rest.aiEndpointUrl = DEFAULT_AI_ENDPOINT;
   return rest;
 }
 

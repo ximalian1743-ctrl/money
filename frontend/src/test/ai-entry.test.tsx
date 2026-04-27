@@ -66,14 +66,11 @@ test('parses a Chinese short sentence and shows editable draft preview', async (
   );
 
   await user.type(screen.getByLabelText('记账内容'), '午饭38元，用现金纸币');
-  await user.clear(screen.getByLabelText('基准时间'));
-  await user.type(screen.getByLabelText('基准时间'), '2026-04-14T09:30');
   await user.click(screen.getByRole('button', { name: '解析文字' }));
 
-  const expectedFallbackOccurredAt = new Date('2026-04-14T09:30').toISOString();
   expect(parseTransactionImpl).toHaveBeenCalledWith({
     inputText: '午饭38元，用现金纸币',
-    fallbackOccurredAt: expectedFallbackOccurredAt,
+    fallbackOccurredAt: expect.any(String),
   });
 
   expect(await screen.findByText('解析结果')).toBeInTheDocument();

@@ -83,7 +83,9 @@ export function AiEntryPage({
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
   async function handleParse() {
-    const fallbackOccurredAt = toIsoString(fallbackOccurredAtLocal);
+    const nowLocal = toDatetimeLocalValue();
+    setFallbackOccurredAtLocal(nowLocal);
+    const fallbackOccurredAt = toIsoString(nowLocal);
     try {
       const nextDrafts = await run(
         () => parseTransactionImpl({ inputText, fallbackOccurredAt }),
@@ -100,7 +102,9 @@ export function AiEntryPage({
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    const fallbackOccurredAt = toIsoString(fallbackOccurredAtLocal);
+    const nowLocal = toDatetimeLocalValue();
+    setFallbackOccurredAtLocal(nowLocal);
+    const fallbackOccurredAt = toIsoString(nowLocal);
     try {
       const imageDataUrl = await compressImageImpl(file);
       setReceiptPreview(imageDataUrl);

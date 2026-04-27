@@ -125,9 +125,9 @@ const fallbackSummary: SummaryData = {
 const fallbackSettings: PublicSettings = {
   cnyToJpyRate: 20,
   jpyToCnyRate: 0.05,
-  aiEndpointUrl: '',
+  aiEndpointUrl: 'https://api.ximalian.cc.cd/v1/chat/completions',
   aiProtocol: 'chat_completions',
-  aiModel: '',
+  aiModel: 'claude-sonnet-4-6',
   hasApiKey: false,
   aiApiKeyMasked: '',
 };
@@ -170,8 +170,8 @@ export function useAppData() {
     mountedRef.current = true;
     void (async () => {
       await reload();
-      // Fire-and-forget auto sync of exchange rate (24h cache)
-      const freshSettings = await autoSyncExchangeRate(settings);
+      const currentSettings = await getSettings();
+      const freshSettings = await autoSyncExchangeRate(currentSettings);
       if (freshSettings && mountedRef.current) {
         setSettings(freshSettings);
         // Re-fetch summary so converted values use new rate
