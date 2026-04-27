@@ -63,13 +63,14 @@ export function OverviewPage() {
 
   return (
     <section className="stack">
-      {/* Unified hero: net worth + inline breakdown */}
       <article className="wealth-card">
-        <p className="wealth-card__label">净资产</p>
-        <strong className="wealth-card__primary">
-          {formatCurrency(summary.actualBalanceCnyBase, 'CNY')}
-        </strong>
-        <p className="wealth-card__sub">{formatCurrency(netJpy, 'JPY')}</p>
+        <div className="wealth-card__main">
+          <p className="wealth-card__label">净资产</p>
+          <strong className="wealth-card__primary">
+            {formatCurrency(summary.actualBalanceCnyBase, 'CNY')}
+          </strong>
+          <p className="wealth-card__sub">{formatCurrency(netJpy, 'JPY')}</p>
+        </div>
         <div className="wealth-card__breakdown">
           <div className="wealth-card__item">
             <span className="wealth-card__item-label">人民币</span>
@@ -94,57 +95,65 @@ export function OverviewPage() {
         </div>
       </article>
 
-      {/* Quick entry chips */}
       {quickTemplates.length > 0 ? (
-        <div className="quick-chips">
-          {quickTemplates.map((t) => (
-            <button
-              key={`${t.title}-${t.accountName}`}
-              type="button"
-              className="quick-chip"
-              onClick={() => setActiveQuickTpl(t)}
-            >
-              <span className="quick-chip__title">{t.title}</span>
-              <span className="quick-chip__sub">{t.accountName}</span>
-            </button>
-          ))}
+        <div className="quick-chips-wrapper">
+          <p className="section-title">快捷记账</p>
+          <div className="quick-chips">
+            {quickTemplates.map((t) => (
+              <button
+                key={`${t.title}-${t.accountName}`}
+                type="button"
+                className="quick-chip"
+                onClick={() => setActiveQuickTpl(t)}
+              >
+                <div className="quick-chip__icon">⚡️</div>
+                <div className="quick-chip__text">
+                  <span className="quick-chip__title">{t.title}</span>
+                  <span className="quick-chip__sub">{t.accountName}</span>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
 
-      {/* Grouped accounts */}
-      <section className="panel panel--compact">
+      <div className="account-groups-container">
         {grouped.map(({ group, items }) => (
           <div key={group} className="account-group">
             <p className="account-group__title">{group}</p>
-            <ul className="account-list">
-              {items.map((acc) => (
-                <li
-                  key={acc.id}
-                  className={`account-row${acc.kind === 'liability' ? ' account-row--credit' : ''}`}
-                  onClick={() => setActiveWallet(acc)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') setActiveWallet(acc);
-                  }}
-                >
-                  <span className="account-row__icon" aria-hidden>
-                    {getAccountIcon(acc)}
-                  </span>
-                  <span className="account-row__name">{acc.name}</span>
-                  <span className="account-row__balance">
-                    {acc.kind === 'liability' && acc.balance === 0 ? (
-                      <span className="account-row__muted">无欠款</span>
-                    ) : (
-                      formatCurrency(acc.balance, acc.currency)
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="panel panel--flush">
+              <ul className="account-list">
+                {items.map((acc) => (
+                  <li
+                    key={acc.id}
+                    className={`account-row${acc.kind === 'liability' ? ' account-row--credit' : ''}`}
+                    onClick={() => setActiveWallet(acc)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') setActiveWallet(acc);
+                    }}
+                  >
+                    <span className="account-row__icon" aria-hidden>
+                      {getAccountIcon(acc)}
+                    </span>
+                    <div className="account-row__content">
+                      <span className="account-row__name">{acc.name}</span>
+                      <span className="account-row__balance">
+                        {acc.kind === 'liability' && acc.balance === 0 ? (
+                          <span className="account-row__muted">无欠款</span>
+                        ) : (
+                          formatCurrency(acc.balance, acc.currency)
+                        )}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         ))}
-      </section>
+      </div>
 
       {error ? <p className="status status--warning">当前展示的是离线占位数据：{error}</p> : null}
 
